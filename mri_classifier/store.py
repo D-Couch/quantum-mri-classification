@@ -49,6 +49,16 @@ class ExperimentStore:
             if not result.rowcount:
                 raise KeyError(experiment_id)
 
+    def set_status(self, experiment_id: str, status: str):
+        if status not in {"queued", "running", "cancelled"}:
+            raise ValueError("status must be queued, running, or cancelled")
+        with self._connect() as db:
+            result = db.execute(
+                "UPDATE experiments SET status=? WHERE id=?", (status, experiment_id)
+            )
+            if not result.rowcount:
+                raise KeyError(experiment_id)
+
     def list(self) -> list[dict]:
         with self._connect() as db:
             rows = db.execute("SELECT * FROM experiments ORDER BY created_at DESC").fetchall()

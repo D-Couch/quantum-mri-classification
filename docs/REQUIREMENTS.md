@@ -10,6 +10,7 @@ Build working research software for 2D multiclass brain tumor MRI classification
 
 - Discover, import, inspect, validate, version, and load accessible datasets; support common image formats initially and extensible medical formats later.
 - Record provenance, license, label definitions, integrity, class counts, and available subject identity. Do not bypass access or licensing conditions or commit datasets.
+- Initial candidate registry: Cheng et al. Figshare CC BY 4.0 dataset (three tumor classes, 233 patients); preserve its class definition and do not imply no-tumor support. See `docs/DATASETS.md`.
 - Preserve original labels. Use official splits where appropriate; otherwise split at patient/subject group, prevent duplicate/correlated/augmented samples crossing partitions, and visibly disclose unverifiable provenance.
 - Fit statistics on training data only and augment training data only. Never use final test data for optimization.
 - Extend toward 3D and other modalities without prematurely implementing them.

@@ -13,6 +13,6 @@ python -m pytest
 streamlit run app.py --server.address 127.0.0.1
 ```
 
-Place an ImageFolder-style dataset under `data/` (one subdirectory per original class). Check its license, provenance, patient identifiers, duplicates, and official evaluation protocol before using it. Data and artifacts are excluded from Git. Do not treat split utility output as safe patient-level splits unless trustworthy subject IDs are provided.
+For training, use a CSV manifest with `relative_path,label,patient_id` columns and a matching image root. Patient IDs are required and all their images stay in one split. The Figshare importer and its license/protocol notes are in [docs/DATASETS.md](docs/DATASETS.md). Data and artifacts are excluded from Git. Do not treat synthetic smoke checks as MRI performance results.
 
 Consult [requirements](docs/REQUIREMENTS.md) and [roadmap](docs/ROADMAP.md) for scope and verification status. The current development runtime had no usable NVIDIA driver and no installed ML/dashboard dependencies; no GPU or real-data result is claimed.

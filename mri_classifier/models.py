@@ -9,10 +9,14 @@ def build_classical_model(architecture: str, num_classes: int, pretrained: bool 
         raise RuntimeError(
             "Install compatible torch and torchvision to train classical models"
         ) from exc
-    constructors = {"resnet18": models.resnet18, "efficientnet_b0": models.efficientnet_b0}
+    constructors = {
+        "resnet18": (models.resnet18, models.ResNet18_Weights.DEFAULT),
+        "efficientnet_b0": (models.efficientnet_b0, models.EfficientNet_B0_Weights.DEFAULT),
+    }
     if architecture not in constructors:
         raise ValueError(f"unsupported classical architecture: {architecture}")
-    model = constructors[architecture](weights="DEFAULT" if pretrained else None)
+    constructor, default_weights = constructors[architecture]
+    model = constructor(weights=default_weights if pretrained else None)
     if architecture == "resnet18":
         model.fc = nn.Linear(model.fc.in_features, num_classes)
     else:

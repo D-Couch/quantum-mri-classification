@@ -1,5 +1,6 @@
 """Safe local image-folder inspection and patient/group split helpers."""
 
+import csv
 import hashlib
 from pathlib import Path
 
@@ -34,6 +35,48 @@ def sha256_file(path: str | Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def load_manifest(path: str | Path, image_root: str | Path) -> list[dict]:
+    """Load a CSV with relative_path,label,patient_id and reject unsafe or duplicate images."""
+    manifest = Path(path).resolve()
+    root = Path(image_root).resolve()
+    required = {"relative_path", "label", "patient_id"}
+    rows, seen_hashes = [], {}
+    with manifest.open(newline="", encoding="utf-8") as stream:
+        reader = csv.DictReader(stream)
+        if not reader.fieldnames or not required.issubset(reader.fieldnames):
+            raise ValueError(f"manifest must have columns: {', '.join(sorted(required))}")
+        for line, row in enumerate(reader, start=2):
+            image = (root / row["relative_path"]).resolve()
+            if not image.is_relative_to(root):
+                raise ValueError(f"line {line}: image path escapes the dataset root")
+            if not image.is_file() or image.suffix.lower() not in IMAGE_EXTENSIONS:
+                raise ValueError(
+                    f"line {line}: missing or unsupported image: {row['relative_path']}"
+                )
+            if not row["label"].strip() or not row["patient_id"].strip():
+                raise ValueError(f"line {line}: label and patient_id are required")
+            digest = sha256_file(image)
+            if digest in seen_hashes:
+                previous = seen_hashes[digest]
+                raise ValueError(f"duplicate image content at lines {previous} and {line}")
+            seen_hashes[digest] = line
+            rows.append(
+                {
+                    "path": image,
+                    "label": row["label"].strip(),
+                    "patient_id": row["patient_id"].strip(),
+                    **(
+                        {"official_fold": int(row["official_fold"])}
+                        if row.get("official_fold")
+                        else {}
+                    ),
+                }
+            )
+    if not rows:
+        raise ValueError("manifest contains no image records")
+    return rows
 
 
 def group_split(

@@ -7,14 +7,26 @@
 - [x] Establish package metadata, engineering instructions, authoritative requirements, and roadmap.
 - [x] Create private GitHub repository and establish initial Git remote.
 - [x] Install isolated dependencies; test metrics, group partitioning, persistence, and hybrid quantum gradient/update.
-- [x] Provide initial dataset inspector and dashboard; dashboard training orchestration remains outstanding.
-- [ ] Finish trainer, dashboard background jobs, real dataset support, and full CI verification.
+- [x] Provide dataset inspector and dashboard training/evaluation workflow.
+- [x] Add a reusable, manifest-driven trainer and dashboard training/evaluation workflow.
+- [ ] Move dashboard training to a cancellable background process and add checkpoint recovery.
+- [ ] Move dashboard training to cancellable background jobs with checkpoint recovery.
+- [ ] Verify CI on GitHub.
 
-### Milestone 2 — Dataset Pipeline: not started
+### Milestone 2 — Dataset Pipeline: real dataset imported and verified
 
-- [ ] Research licensed dataset sources, provenance, and evaluation protocols.
-- [ ] Add registry/import, integrity inspection, deduplication, group-aware partitioning, and disclosure of unknown subject identity.
-- [ ] Validate on a real dataset without committing the data.
+- [x] Research licensed dataset source, provenance, classes, patient identity, and published protocol.
+- [x] Add Figshare `.mat` importer, manifest integrity checks, duplicate rejection, and patient-group partitioning.
+- [x] Retain official five-fold assignments and check patient-level separation on the downloaded release.
+- [x] Validate import and manifest integrity on real data without committing the data.
+- [ ] Train a baseline on the real dataset with the official folds.
+
+### Implemented dataset safeguards
+
+- CSV manifest requires `relative_path,label,patient_id`; paths cannot escape the declared image root.
+- Byte-identical image content is rejected before splitting; groups are assigned wholly to train/validation/test.
+- The trainer refuses small or empty splits and any split missing a declared class. Real-world feasibility and stratification still need evaluation.
+- Dataset kind defaults to `unverified`; tests explicitly mark generated fixtures `synthetic`.
 
 ### Milestone 3 — Classical Training: not started
 
@@ -41,10 +53,12 @@
 - Current runtime: Python 3.14.8, Linux x86_64. Installed Git 2.56 and GitHub CLI 2.102.0. Outside-sandbox `gh auth status` confirmed D-Couch keyring authentication; GitHub API is reachable; the private repository has been created. Push/remote verification status is recorded below.
 - `nvidia-smi` cannot communicate with an NVIDIA driver. This environment does not establish target workstation capability.
 - Dependencies installed in `.venv` on Python 3.14: Streamlit, Pillow, NumPy, PyTorch, torchvision, scikit-learn, PennyLane, PennyLane-Lightning, pytest, and Ruff. Pytest currently passes 5 tests; Ruff and compileall pass. The hybrid model passed CPU forward/backward/weight-update verification.
-- No MRI dataset or confirmed data license/provenance is available in this workspace.
+- Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, and final test evaluation. Synthetic training tests are explicitly labeled. A real-data smoke run executed one CPU epoch on a deliberately small 15-patient subset, marked `experiment_kind=smoke`; its metrics are not research findings and are excluded from best-model selection. Full-dataset repeated baseline experiments remain outstanding.
+- Latest verification before current edits: 9 pytest tests passed; Ruff, compileall, and `git diff --check` passed. The dashboard returned HTTP 200 from localhost. Repeat these checks after current edits.
+- Figshare v5 archives are in ignored `data/raw/`; imported images/manifests are in ignored `data/figshare-v5/`. Source details, checksum findings, and class limitations are documented in `docs/DATASETS.md`.
 
 ## Decisions to investigate
 
-- Select an accessible dataset after confirming license, provenance, subject identifiers, duplicate risks, labels, and published protocol.
+- Evaluate the Figshare importer against future source versions and inspect duplicate/near-duplicate risks.
 - Compare PennyLane Lightning devices against available classical controls empirically.
 - Select transfer-learning checkpoints only after confirming license, source, and compatibility.
