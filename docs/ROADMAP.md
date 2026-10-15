@@ -23,6 +23,7 @@
 - [x] Retain official five-fold assignments and check patient-level separation on the downloaded release.
 - [x] Validate import and manifest integrity on real data without committing the data.
 - [x] Run a preliminary scratch baseline on one official fold assignment; expanded matched experiments are tracked in Milestones 3–5.
+- [x] Screen current Figshare v5 for perceptual near-duplicates across patient folds; retain the scan as a review-only heuristic.
 
 ### Implemented dataset safeguards
 
@@ -76,8 +77,8 @@
 ## Current blockers and verification
 
 - Current runtime: Python 3.14.8, Linux x86_64. Installed Git 2.56 and GitHub CLI 2.102.0. Outside-sandbox `gh auth status` confirmed D-Couch keyring authentication; GitHub API is reachable; the private repository and remote are verified.
-- This runtime exposes an NVIDIA GeForce RTX 4090 with driver 615.78.08, CUDA 13.0, and 24,564 MiB total memory. A full 3,064-image one-epoch ResNet18 smoke run on official folds completed on CUDA in 10.16 seconds; it is labeled `experiment_kind=smoke` and is not a research result. An initial matched one-epoch CPU/GPU/input-pipeline profile is recorded in `docs/DATASETS.md`; repeated timing and validation-stability checks remain outstanding.
-- Dependencies installed in `.venv` on Python 3.14: Streamlit, Pillow, NumPy, h5py, PyTorch, torchvision, scikit-learn, PennyLane, PennyLane-Lightning, pytest, and Ruff. Current local suite has 19 passing tests covering metrics, splits, persistence/migration, model forward, hybrid gradients, importer, training/inference, background job progress/cancellation/recovery, patient-cluster bootstrap, safe CSV export, dataset cohort identity, and dashboard views.
+- This runtime exposes an NVIDIA GeForce RTX 4090 with driver 615.78.08, CUDA 13.0, and 24,564 MiB total memory. A full 3,064-image one-epoch ResNet18 smoke run on official folds completed on CUDA in 10.16 seconds; it is labeled `experiment_kind=smoke` and is not a research result. Initial repeated CPU/GPU/input-pipeline/AMP and four-epoch warm-up profiles are recorded in `docs/DATASETS.md`; multi-seed steady-state timing and validation-stability checks remain outstanding.
+- Dependencies installed in `.venv` on Python 3.14: Streamlit, Pillow, NumPy, h5py, PyTorch, torchvision, scikit-learn, PennyLane, PennyLane-Lightning, pytest, and Ruff. Current local suite has 20 passing tests covering metrics, splits, persistence/migration, model forward, hybrid gradients, importer, training/inference, background job progress/cancellation/recovery, patient-cluster bootstrap, safe CSV export, dataset cohort identity, perceptual duplicate screening, per-epoch timing, and dashboard views.
 - ML frameworks are declared in the `ml` extra; GitHub Actions installs CPU-only PyTorch wheels to avoid pulling CUDA runtime packages onto CI runners.
 - Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, final test evaluation, and guarded checkpoint warm-start recovery. Synthetic training tests are explicitly labeled. A full-dataset one-epoch run is marked `experiment_kind=smoke` and excluded from best-model selection. Seeds 42–44 were evaluated on all five official folds for scratch ResNet18, ImageNet transfer ResNet18, hybrid, and scratch EfficientNet-B0 settings. Per-fold summaries, validation-only selection, and patient-cluster intervals are recorded in `docs/DATASETS.md`; these remain a fixed-protocol research pilot, not a clinical or directly comparable published benchmark.
 - The evaluation engine reports macro/weighted F1, accuracy, balanced accuracy, per-class precision/recall/sensitivity/specificity, multiclass ROC-AUC and average precision, MCC, kappa, and confusion matrix. Training runs off the Streamlit request path and persists epoch progress. The current one-epoch CUDA smoke report and recovery lineage are stored in SQLite. Classical training uses CUDA when available; current PennyLane CPU simulators remain on CPU to avoid device mismatch.
@@ -85,6 +86,6 @@
 
 ## Decisions to investigate
 
-- Evaluate the Figshare importer against future source versions and inspect duplicate/near-duplicate risks.
-- Compare PennyLane Lightning devices against available classical controls empirically.
-- Select transfer-learning checkpoints only after confirming license, source, and compatibility.
+- [x] Screen current Figshare v5 for cross-fold perceptual duplicates; the two strongest candidates were visually distinct. Repeat this screen for future dataset releases.
+- [x] Compare the installed CPU `default.qubit` and `lightning.qubit` simulators; `lightning.gpu` is unavailable in this runtime.
+- [x] Record the EfficientNet-B0 ImageNet checkpoint source, exact enum, software version, and dataset-license caveat; broader transfer comparisons remain limited by pretrained-data terms and validation results.

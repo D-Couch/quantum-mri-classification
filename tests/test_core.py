@@ -333,6 +333,36 @@ def test_dataset_cohort_identity_uses_source_release_metadata(tmp_path):
     assert "1512427.v5" in dataset_version_identity(first)
 
 
+def test_near_duplicate_screen_reports_candidates_without_patient_identifiers(tmp_path):
+    from PIL import Image, ImageDraw
+
+    from mri_classifier.near_duplicates import screen_near_duplicates
+
+    original = Image.new("L", (128, 128), 0)
+    draw = ImageDraw.Draw(original)
+    draw.rectangle((24, 24, 96, 96), fill=180)
+    draw.ellipse((48, 48, 72, 72), fill=40)
+    duplicate = tmp_path / "candidate-a.png"
+    original.save(duplicate)
+    copied = tmp_path / "candidate-b.png"
+    original.copy().save(copied)
+    distinct = Image.new("L", (128, 128), 0)
+    ImageDraw.Draw(distinct).rectangle((8, 8, 28, 110), fill=255)
+    unrelated = tmp_path / "candidate-c.png"
+    distinct.save(unrelated)
+    rows = [
+        {"path": duplicate, "label": "a", "patient_id": "hidden-1", "official_fold": 1},
+        {"path": copied, "label": "a", "patient_id": "hidden-2", "official_fold": 2},
+        {"path": unrelated, "label": "b", "patient_id": "hidden-3", "official_fold": 3},
+    ]
+
+    result = screen_near_duplicates(rows)
+
+    assert result["review_pair_count"] >= 1
+    assert result["candidate_pair_counts"]["different_patient_cross_fold"] >= 1
+    assert "hidden-1" not in str(result)
+
+
 def test_dashboard_home_and_live_training_view():
     from streamlit.testing.v1 import AppTest
 
