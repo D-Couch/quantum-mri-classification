@@ -60,7 +60,9 @@
 
 ### Milestone 6 — Performance Optimization: RTX 4090 verified; optimization profiling outstanding
 
-- [ ] Evaluate architecture/hyperparameter alternatives, ensembles, augmentation, and GPU pipeline.
+- [x] Run an initial three-seed EfficientNet-B0 scratch pilot against matched ResNet18 scratch on one official fold; only validation macro-F1 informed the comparison.
+- [ ] Replicate architecture alternatives across all folds; evaluate transfer alternatives after confirming checkpoint provenance, then consider ensembles and augmentation.
+- [ ] Profile and optimize the GPU input pipeline after repeated warm-up measurements.
 - [x] Verify the exposed RTX 4090 and measure a full-dataset one-epoch CUDA smoke run (10.16 seconds; smoke only).
 - [x] Add explicit device selection, configurable data-loader workers, opt-in CUDA mixed precision, and persist effective settings in reports.
 - [x] Run a matched one-epoch CPU/GPU and CUDA input-pipeline/AMP smoke profile; results are in `docs/DATASETS.md` and SQLite.
