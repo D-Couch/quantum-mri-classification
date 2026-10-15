@@ -11,7 +11,7 @@
 - [x] Add a reusable, manifest-driven trainer and dashboard training/evaluation workflow.
 - [x] Add checkpoint loading and in-memory single-image inference; smoke-test probabilities sum to one.
 - [x] Restrict best-model selection and comparisons to matched dataset/class/split cohorts; exclude synthetic and smoke runs.
-- [ ] Move dashboard training to a cancellable background process and add checkpoint recovery.
+- [x] Move dashboard training to a cancellable background process.
 - [x] Run dashboard training in a single cancellable background worker with persisted epoch progress and duplicate-job prevention.
 - [ ] Add safe recovery/resumption of interrupted jobs from checkpoints.
 - [x] Verify GitHub Actions on the CPU-only workflow (latest pushed CI passed).
@@ -22,7 +22,7 @@
 - [x] Add Figshare `.mat` importer, manifest integrity checks, duplicate rejection, and patient-group partitioning.
 - [x] Retain official five-fold assignments and check patient-level separation on the downloaded release.
 - [x] Validate import and manifest integrity on real data without committing the data.
-- [ ] Train a baseline on the real dataset with the official folds.
+- [x] Run a preliminary scratch baseline on one official fold assignment; repeated folds/seeds remain outstanding.
 
 ### Implemented dataset safeguards
 
@@ -31,14 +31,17 @@
 - The trainer refuses small or empty splits and any split missing a declared class. Real-world feasibility and stratification still need evaluation.
 - Dataset kind defaults to `unverified`; tests explicitly mark generated fixtures `synthetic`.
 
-### Milestone 3 — Classical Training: not started
+### Milestone 3 — Classical Training: runner implemented; research baselines outstanding
 
-- [ ] Train/evaluate scratch and transfer learning baselines with validation-only selection.
-- [ ] Persist histories, checkpoints, metrics, and visualizations; validate inference.
+- [x] Implement scratch and transfer-capable classical constructors, checkpoint selection by validation macro-F1, metric/report persistence, and inference.
+- [x] Run a full-dataset one-epoch ResNet18 smoke execution on official folds (CPU, 3,064 images, 233 patients); artifact remains labeled smoke.
+- [x] Run one multi-epoch scratch baseline on real data using official folds (single seed/fold; preliminary).
+- [ ] Run transfer baselines and repeated seeds/folds; report uncertainty.
 
 ### Milestone 4 — Quantum Integration: not started
 
-- [ ] Implement trainable hybrid model and gradient/update tests.
+- [x] Implement trainable hybrid model and gradient/update tests.
+- [ ] Run a research comparison against classical controls and profile simulator alternatives.
 - [ ] Profile CPU and compatible accelerated simulators.
 
 ### Milestone 5 — Model Selection and Research: not started
@@ -57,8 +60,8 @@
 - `nvidia-smi` cannot communicate with an NVIDIA driver. This environment does not establish target workstation capability.
 - Dependencies installed in `.venv` on Python 3.14: Streamlit, Pillow, NumPy, h5py, PyTorch, torchvision, scikit-learn, PennyLane, PennyLane-Lightning, pytest, and Ruff. Current local suite has 15 passing tests covering metrics, splits, persistence/migration, model forward, hybrid gradients, importer, training/inference, background job progress/cancellation, and dashboard views.
 - ML frameworks are declared in the `ml` extra; GitHub Actions installs CPU-only PyTorch wheels to avoid pulling CUDA runtime packages onto CI runners.
-- Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, and final test evaluation. Synthetic training tests are explicitly labeled. A real-data smoke run executed one CPU epoch on a deliberately small 15-patient subset, marked `experiment_kind=smoke`; its metrics are not research findings and are excluded from best-model selection. Full-dataset repeated baseline experiments remain outstanding.
-- The evaluation engine reports macro/weighted F1, accuracy, balanced accuracy, per-class precision/recall/sensitivity/specificity, multiclass ROC-AUC and average precision, MCC, kappa, and confusion matrix. Training now runs off the Streamlit request path and persists epoch progress. Checks currently pass locally; the latest dashboard/test changes have not yet been pushed.
+- Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, and final test evaluation. Synthetic training tests are explicitly labeled. A separate full-dataset one-epoch run is marked `experiment_kind=smoke` and excluded from best-model selection. One real-data ResNet18 scratch baseline completed on official folds: test macro-F1 0.822 and accuracy 0.829; it used one seed and one fold assignment, so it is preliminary. Transfer and repeated baselines remain outstanding.
+- The evaluation engine reports macro/weighted F1, accuracy, balanced accuracy, per-class precision/recall/sensitivity/specificity, multiclass ROC-AUC and average precision, MCC, kappa, and confusion matrix. Training runs off the Streamlit request path and persists epoch progress. A real full-dataset one-epoch smoke run completed in 45.4 seconds on CPU, saved its checkpoint, and was excluded from best-model selection; its scores are not research findings.
 - Figshare v5 archives are in ignored `data/raw/`; imported images/manifests are in ignored `data/figshare-v5/`. Source details, checksum findings, and class limitations are documented in `docs/DATASETS.md`.
 
 ## Decisions to investigate
