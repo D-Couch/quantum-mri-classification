@@ -36,12 +36,14 @@
 - [x] Implement scratch and transfer-capable classical constructors, checkpoint selection by validation macro-F1, metric/report persistence, and inference.
 - [x] Run a full-dataset one-epoch ResNet18 smoke execution on official folds (CPU, 3,064 images, 233 patients); artifact remains labeled smoke.
 - [x] Run one multi-epoch scratch baseline on real data using official folds (single seed/fold; preliminary).
-- [ ] Run transfer baselines and repeated seeds/folds; report uncertainty.
+- [x] Run one transfer baseline on a separate official fold assignment (single seed/fold; preliminary).
+- [ ] Repeat scratch and transfer runs on matched folds/seeds; report uncertainty.
 
 ### Milestone 4 — Quantum Integration: not started
 
 - [x] Implement trainable hybrid model and gradient/update tests.
-- [ ] Run a research comparison against classical controls and profile simulator alternatives.
+- [x] Run one matched-fold hybrid pilot against a scratch ResNet18 control; this single seed/fold result is preliminary.
+- [ ] Repeat the comparison across seeds/folds and profile simulator alternatives.
 - [ ] Profile CPU and compatible accelerated simulators.
 
 ### Milestone 5 — Model Selection and Research: not started
@@ -60,7 +62,7 @@
 - `nvidia-smi` cannot communicate with an NVIDIA driver. This environment does not establish target workstation capability.
 - Dependencies installed in `.venv` on Python 3.14: Streamlit, Pillow, NumPy, h5py, PyTorch, torchvision, scikit-learn, PennyLane, PennyLane-Lightning, pytest, and Ruff. Current local suite has 15 passing tests covering metrics, splits, persistence/migration, model forward, hybrid gradients, importer, training/inference, background job progress/cancellation, and dashboard views.
 - ML frameworks are declared in the `ml` extra; GitHub Actions installs CPU-only PyTorch wheels to avoid pulling CUDA runtime packages onto CI runners.
-- Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, and final test evaluation. Synthetic training tests are explicitly labeled. A separate full-dataset one-epoch run is marked `experiment_kind=smoke` and excluded from best-model selection. One real-data ResNet18 scratch baseline completed on official folds: test macro-F1 0.822 and accuracy 0.829; it used one seed and one fold assignment, so it is preliminary. Transfer and repeated baselines remain outstanding.
+- Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, and final test evaluation. Synthetic training tests are explicitly labeled. A separate full-dataset one-epoch run is marked `experiment_kind=smoke` and excluded from best-model selection. Scratch, ImageNet transfer, and hybrid pilots completed. A matched fold 3 scratch/hybrid comparison produced macro-F1 0.843 versus 0.580; this is one seed/fold only. The separate scratch and transfer baselines used different held-out folds (macro-F1 0.822 and 0.929) and are not directly comparable. Repeated matched runs and uncertainty estimates remain outstanding.
 - The evaluation engine reports macro/weighted F1, accuracy, balanced accuracy, per-class precision/recall/sensitivity/specificity, multiclass ROC-AUC and average precision, MCC, kappa, and confusion matrix. Training runs off the Streamlit request path and persists epoch progress. A real full-dataset one-epoch smoke run completed in 45.4 seconds on CPU, saved its checkpoint, and was excluded from best-model selection; its scores are not research findings.
 - Figshare v5 archives are in ignored `data/raw/`; imported images/manifests are in ignored `data/figshare-v5/`. Source details, checksum findings, and class limitations are documented in `docs/DATASETS.md`.
 
