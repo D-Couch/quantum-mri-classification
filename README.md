@@ -8,7 +8,7 @@ Research software for comparing classical, hybrid quantum-classical, and ensembl
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -e '.[dev]'
+python -m pip install -e '.[dev,ml]'
 python -m pytest
 streamlit run app.py --server.address 127.0.0.1
 ```
