@@ -67,9 +67,11 @@
 - [ ] Profile and optimize the GPU input pipeline after repeated warm-up measurements.
 - [x] Verify the exposed RTX 4090 and measure a full-dataset one-epoch CUDA smoke run (10.16 seconds; smoke only).
 - [x] Add explicit device selection, configurable data-loader workers, opt-in CUDA mixed precision, and persist effective settings in reports.
+- [x] Record per-epoch durations in experiment history.
 - [x] Run a matched one-epoch CPU/GPU and CUDA input-pipeline/AMP smoke profile; results are in `docs/DATASETS.md` and SQLite.
 - [x] Repeat each profile setting to three runs and summarize medians/ranges; no warm-up was used.
-- [ ] Measure with warm-up, check multi-epoch validation stability, and optimize pipeline/precision settings.
+- [x] Run a four-epoch timing profile with epoch 1 as warm-up; the two-worker FP32 case was fastest in this single profile.
+- [ ] Repeat multi-epoch profiles across seeds, assess validation stability, and optimize pipeline/precision settings before changing defaults.
 
 ## Current blockers and verification
 

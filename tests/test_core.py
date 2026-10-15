@@ -455,6 +455,7 @@ def test_grouped_hybrid_training_vertical_slice_is_labeled_synthetic(tmp_path):
     assert report["dataset_kind"] == "synthetic"
     assert report["validation_macro_f1"] >= 0
     assert report["test_metrics"]["accuracy"] >= 0
+    assert report["history"][0]["duration_seconds"] > 0
     assert report["split_strategy"] == "official_five_fold"
     assert report["test_fold"] == 5
     assert (tmp_path / "artifacts" / Path(report["checkpoint"]).name).exists()

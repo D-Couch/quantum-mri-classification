@@ -234,6 +234,7 @@ def run_experiment(
     for epoch in range(resumed_from_epoch or 0, config.epochs):
         if cancel and cancel():
             raise InterruptedError("experiment cancelled")
+        epoch_started = time.perf_counter()
         model.train()
         total_loss, count = 0.0, 0
         for images, targets in loaders["train"]:
@@ -253,9 +254,11 @@ def run_experiment(
             count += targets.size(0)
         validation, val_loss = evaluate(loaders["validation"])
         scheduler.step(validation["macro_f1"])
+        epoch_duration = time.perf_counter() - epoch_started
         history.append(
             {
                 "epoch": epoch + 1,
+                "duration_seconds": epoch_duration,
                 "train_loss": total_loss / count,
                 "validation_loss": val_loss,
                 "validation": validation,
