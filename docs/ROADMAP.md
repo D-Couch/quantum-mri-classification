@@ -37,18 +37,21 @@
 - [x] Run a full-dataset one-epoch ResNet18 smoke execution on official folds (CPU, 3,064 images, 233 patients); artifact remains labeled smoke.
 - [x] Run one multi-epoch scratch baseline on real data using official folds (single seed/fold; preliminary).
 - [x] Run one transfer baseline on a separate official fold assignment (single seed/fold; preliminary).
-- [ ] Repeat scratch and transfer runs on matched folds/seeds; report uncertainty.
+- [x] Repeat scratch and transfer on one matched official fold with seeds 42–44; record test macro-F1 mean and sample SD.
+- [ ] Repeat across additional official held-out folds to estimate fold-level variation.
 
 ### Milestone 4 — Quantum Integration: not started
 
 - [x] Implement trainable hybrid model and gradient/update tests.
 - [x] Run one matched-fold hybrid pilot against a scratch ResNet18 control; this single seed/fold result is preliminary.
-- [ ] Repeat the comparison across seeds/folds and profile simulator alternatives.
+- [x] Repeat matched scratch/hybrid comparison across seeds 42–44 on official fold 3.
+- [ ] Repeat across additional folds and profile simulator alternatives.
 - [ ] Profile CPU and compatible accelerated simulators.
 
 ### Milestone 5 — Model Selection and Research: not started
 
-- [ ] Compare repeated runs and uncertainty; select best overall/classical/hybrid.
+- [x] Compare three-seed matched-fold results and report mean/sample SD in the dataset registry.
+- [ ] Aggregate uncertainty across multiple official folds and select best overall/classical/hybrid.
 - [ ] Add benchmark references with dataset and protocol qualifiers, exports, and model comparison.
 
 ### Milestone 6 — Performance Optimization: not started
@@ -63,7 +66,7 @@
 - This runtime exposes an NVIDIA GeForce RTX 4090 with driver 615.78.08, CUDA 13.0, and 24,564 MiB total memory. A full 3,064-image one-epoch ResNet18 smoke run on official folds completed on CUDA in 10.16 seconds; it is labeled `experiment_kind=smoke` and is not a research result. Matched CPU/GPU performance profiling remains outstanding.
 - Dependencies installed in `.venv` on Python 3.14: Streamlit, Pillow, NumPy, h5py, PyTorch, torchvision, scikit-learn, PennyLane, PennyLane-Lightning, pytest, and Ruff. Current local suite has 16 passing tests covering metrics, splits, persistence/migration, model forward, hybrid gradients, importer, training/inference, background job progress/cancellation/recovery, and dashboard views.
 - ML frameworks are declared in the `ml` extra; GitHub Actions installs CPU-only PyTorch wheels to avoid pulling CUDA runtime packages onto CI runners.
-- Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, and final test evaluation. Synthetic training tests are explicitly labeled. A separate full-dataset one-epoch run is marked `experiment_kind=smoke` and excluded from best-model selection. Scratch, ImageNet transfer, and hybrid pilots completed. A matched fold 3 scratch/hybrid comparison produced macro-F1 0.843 versus 0.580; this is one seed/fold only. The separate scratch and transfer baselines used different held-out folds (macro-F1 0.822 and 0.929) and are not directly comparable. Repeated matched runs and uncertainty estimates remain outstanding.
+- Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, final test evaluation, and guarded checkpoint warm-start recovery. Synthetic training tests are explicitly labeled. A full-dataset one-epoch run is marked `experiment_kind=smoke` and excluded from best-model selection. On official fold 3, three matched seeds yielded mean test macro-F1 ± sample SD of 0.858 ± 0.018 (scratch), 0.933 ± 0.006 (ImageNet transfer), and 0.497 ± 0.072 (hybrid). This quantifies seed variation on one fold; additional held-out folds are needed to estimate fold variation.
 - The evaluation engine reports macro/weighted F1, accuracy, balanced accuracy, per-class precision/recall/sensitivity/specificity, multiclass ROC-AUC and average precision, MCC, kappa, and confusion matrix. Training runs off the Streamlit request path and persists epoch progress. The current one-epoch CUDA smoke report and recovery lineage are stored in SQLite. Classical training uses CUDA when available; current PennyLane CPU simulators remain on CPU to avoid device mismatch.
 - Figshare v5 archives are in ignored `data/raw/`; imported images/manifests are in ignored `data/figshare-v5/`. Source details, checksum findings, and class limitations are documented in `docs/DATASETS.md`.
 
