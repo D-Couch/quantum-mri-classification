@@ -23,6 +23,13 @@ REVISION_BY_FOLD = {
 SEEDS = (42, 43, 44)
 N_BOOTSTRAP = 2000
 BOOTSTRAP_SEED = 20261015
+EFFICIENTNET_REVISION_BY_FOLD = {
+    1: "01d9511",
+    2: "ead30d4",
+    3: "ead30d4",
+    4: "ead30d4",
+    5: "ead30d4",
+}
 
 
 def macro_f1_from_confusion(matrix: np.ndarray) -> float:
@@ -115,6 +122,19 @@ def patient_cluster_bootstrap(
             for family, draws in draws_by_family.items()
             if family != "transfer"
         }
+    if "scratch" in draws_by_family and "efficientnet_scratch" in draws_by_family:
+        efficientnet = draws_by_family["efficientnet_scratch"]
+        scratch = draws_by_family["scratch"]
+        results["efficientnet_minus_resnet_scratch"] = {
+            "mean_macro_f1_difference": results["efficientnet_scratch"][
+                "pooled_oof_macro_f1_mean_across_seeds"
+            ]
+            - results["scratch"]["pooled_oof_macro_f1_mean_across_seeds"],
+            "patient_cluster_bootstrap_95_percentile_interval": [
+                float(np.quantile(efficientnet - scratch, 0.025)),
+                float(np.quantile(efficientnet - scratch, 0.975)),
+            ],
+        }
     return results
 
 
@@ -130,16 +150,31 @@ def select_runs(records):
             or report.get("split_strategy") != "official_five_fold"
             or fold not in REVISION_BY_FOLD
             or seed not in SEEDS
-            or not str(report.get("git_revision", "")).startswith(REVISION_BY_FOLD[fold])
         ):
             continue
         family = config.get("model_family")
-        arm = "hybrid" if family == "hybrid" else config.get("training_mode")
+        revision = str(report.get("git_revision", ""))
+        if family == "hybrid":
+            if not revision.startswith(REVISION_BY_FOLD[fold]):
+                continue
+            arm = "hybrid"
+        elif config.get("architecture") == "efficientnet_b0":
+            if (
+                config.get("training_mode") != "scratch"
+                or config.get("dataset_version") != "figshare-v5"
+                or not revision.startswith(EFFICIENTNET_REVISION_BY_FOLD[fold])
+            ):
+                continue
+            arm = "efficientnet_scratch"
+        else:
+            if not revision.startswith(REVISION_BY_FOLD[fold]):
+                continue
+            arm = config.get("training_mode")
         key = (arm, seed, fold)
         if key in selected:
             raise ValueError(f"duplicate fixed-protocol model run for {key}")
         selected[key] = record
-    expected = 3 * len(SEEDS) * 5
+    expected = 4 * len(SEEDS) * 5
     if len(selected) != expected:
         raise ValueError(f"expected {expected} fixed-protocol runs, found {len(selected)}")
     return selected
@@ -161,7 +196,8 @@ def main():
     records = ExperimentStore(args.database).list()
     selected = select_runs(records)
     groups_by_family_seed = {
-        family: {seed: {} for seed in SEEDS} for family in ("scratch", "transfer", "hybrid")
+        family: {seed: {} for seed in SEEDS}
+        for family in ("scratch", "transfer", "hybrid", "efficientnet_scratch")
     }
     group_class = {}
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -215,7 +251,11 @@ def main():
         if cursor != len(dataset):
             raise ValueError("prediction count does not match the test-fold dataset")
         groups_by_family_seed[family][seed].update(matrices)
-        print(f"{ordinal}/45 {family} seed={seed} fold={fold}: {len(matrices)} patients", flush=True)
+        print(
+            f"{ordinal}/{len(selected)} {family} seed={seed} fold={fold}: "
+            f"{len(matrices)} patients",
+            flush=True,
+        )
         del model, state, dataset, loader
         if model_device.type == "cuda":
             torch.cuda.empty_cache()

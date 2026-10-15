@@ -254,6 +254,7 @@ def test_patient_cluster_bootstrap_resamples_whole_groups_deterministically():
     confusions = {
         "transfer": {seed: perfect for seed in (42, 43, 44)},
         "scratch": {seed: imperfect for seed in (42, 43, 44)},
+        "efficientnet_scratch": {seed: imperfect for seed in (42, 43, 44)},
     }
 
     result = patient_cluster_bootstrap(confusions, labels, ["class_a", "class_b"], 100, 7)
@@ -265,6 +266,9 @@ def test_patient_cluster_bootstrap_resamples_whole_groups_deterministically():
     ]
     assert interval[0] < 0
     assert interval[1] == 0
+    assert result["efficientnet_minus_resnet_scratch"][
+        "patient_cluster_bootstrap_95_percentile_interval"
+    ] == [0.0, 0.0]
 
 
 def test_research_csv_export_omits_local_paths_and_escapes_formulas():
@@ -309,6 +313,24 @@ def test_research_csv_export_omits_local_paths_and_escapes_formulas():
     assert "dataset_path" not in row
     assert "/private" not in content
     assert "patient_id" not in content
+
+
+def test_dataset_cohort_identity_uses_source_release_metadata(tmp_path):
+    import json
+
+    from mri_classifier.cohorts import dataset_version_identity
+
+    root = tmp_path / "figshare-v5"
+    root.mkdir()
+    (root / "dataset.json").write_text(
+        json.dumps({"source": "https://doi.org/10.6084/m9.figshare.1512427.v5", "version": "5"}),
+        encoding="utf-8",
+    )
+    first = {"dataset_path": str(root), "dataset_version": "figshare-v5"}
+    second = {"dataset_path": str(root), "dataset_version": "figshare-1512427-v5"}
+
+    assert dataset_version_identity(first) == dataset_version_identity(second)
+    assert "1512427.v5" in dataset_version_identity(first)
 
 
 def test_dashboard_home_and_live_training_view():

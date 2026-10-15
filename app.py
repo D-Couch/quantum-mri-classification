@@ -2,6 +2,7 @@
 
 import streamlit as st
 
+from mri_classifier.cohorts import dataset_version_identity
 from mri_classifier.config import ExperimentConfig
 from mri_classifier.datasets import inspect_image_folder
 from mri_classifier.jobs import TrainingManager
@@ -188,7 +189,7 @@ elif page in {"History", "Model Comparison", "Best Model"}:
             report = record["metrics"].get("report", {})
             return (
                 config.get("dataset_path"),
-                config.get("dataset_version"),
+                dataset_version_identity(config),
                 tuple(report.get("class_names", ())),
                 config.get("split_strategy"),
                 config.get("test_fold")
@@ -265,7 +266,7 @@ elif page in {"History", "Model Comparison", "Best Model"}:
             comparison_keys = {
                 (
                     r["config"].get("dataset_path"),
-                    r["config"].get("dataset_version"),
+                    dataset_version_identity(r["config"]),
                     tuple(r["metrics"].get("report", {}).get("class_names", ())),
                     r["config"].get("split_strategy"),
                     r["config"].get("test_fold"),
@@ -278,7 +279,7 @@ elif page in {"History", "Model Comparison", "Best Model"}:
                     for r in comparable
                     if (
                         r["config"].get("dataset_path"),
-                        r["config"].get("dataset_version"),
+                        dataset_version_identity(r["config"]),
                         tuple(r["metrics"].get("report", {}).get("class_names", ())),
                         r["config"].get("split_strategy"),
                         r["config"].get("test_fold"),
