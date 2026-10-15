@@ -71,8 +71,8 @@
 - [x] Record per-epoch durations in experiment history.
 - [x] Run a matched one-epoch CPU/GPU and CUDA input-pipeline/AMP smoke profile; results are in `docs/DATASETS.md` and SQLite.
 - [x] Repeat each profile setting to three runs and summarize medians/ranges; no warm-up was used.
-- [x] Run a four-epoch timing profile with epoch 1 as warm-up; the two-worker FP32 case was fastest in this single profile.
-- [ ] Repeat multi-epoch profiles across seeds, assess validation stability, and optimize pipeline/precision settings before changing defaults.
+- [x] Repeat four-epoch profiles across seeds 42–44, treating epoch 1 as warm-up; the two-worker FP32 case was fastest across nine post-warm-up epochs per setting.
+- [ ] Assess validation stability in longer runs and evaluate host-specific worker defaults before changing pipeline/precision settings.
 
 ## Current blockers and verification
 
