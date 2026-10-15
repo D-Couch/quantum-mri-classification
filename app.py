@@ -115,6 +115,8 @@ elif page == "Experiment Configuration":
                 store.finish(experiment_id, {}, error=str(exc))
             st.error(f"Experiment failed: {exc}")
 elif page in {"History", "Model Comparison", "Best Model"}:
+    if page == "Model Comparison":
+        st.caption("Compare scores only when dataset, class definitions, and split protocol match.")
     if not records:
         st.info("No experiments saved yet.")
     else:
@@ -142,15 +144,22 @@ elif page in {"History", "Model Comparison", "Best Model"}:
             and r["config"].get("experiment_kind", "research") == "research"
             and "macro_f1" in r["metrics"]
         ]
-        if completed:
-            best = max(completed, key=lambda r: r["metrics"]["macro_f1"])
-            st.success(
-                f"Best overall: {best['id']} (validation macro-F1 {best['metrics']['macro_f1']:.3f})"
-            )
-        else:
-            st.caption(
-                "Unavailable until real-data research experiments (not smoke runs) are completed."
-            )
+        categories = {
+            "Best overall": completed,
+            "Best classical": [
+                r for r in completed if r["config"].get("model_family") == "classical"
+            ],
+            "Best quantum/hybrid": [
+                r for r in completed if r["config"].get("model_family") == "hybrid"
+            ],
+        }
+        columns = st.columns(len(categories))
+        for column, (title, candidates) in zip(columns, categories.items()):
+            if candidates:
+                best = max(candidates, key=lambda r: r["metrics"]["macro_f1"])
+                column.metric(title, f"{best['metrics']['macro_f1']:.3f}", help=best["id"])
+            else:
+                column.metric(title, "Unavailable")
 else:
     st.info(
         "Compare only completed validated experiments; different datasets and protocols are not directly comparable."

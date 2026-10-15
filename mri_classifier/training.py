@@ -149,7 +149,7 @@ def run_experiment(config, rows, output_dir="artifacts", progress=None, cancel=N
 
     def evaluate(loader):
         model.eval()
-        true, pred, total_loss, count = [], [], 0.0, 0
+        true, pred, score_rows, total_loss, count = [], [], [], 0.0, 0
         with torch.inference_mode():
             for images, targets in loader:
                 images, targets = images.to(device), targets.to(device)
@@ -157,8 +157,10 @@ def run_experiment(config, rows, output_dir="artifacts", progress=None, cancel=N
                 total_loss += criterion(outputs, targets).item() * targets.size(0)
                 count += targets.size(0)
                 true.extend(label_names[i] for i in targets.cpu().tolist())
-                pred.extend(label_names[i] for i in outputs.argmax(1).cpu().tolist())
-        return classification_metrics(true, pred, label_names), total_loss / count
+                probabilities = outputs.softmax(dim=1)
+                pred.extend(label_names[i] for i in probabilities.argmax(1).cpu().tolist())
+                score_rows.extend(probabilities.cpu().tolist())
+        return classification_metrics(true, pred, label_names, score_rows), total_loss / count
 
     for epoch in range(config.epochs):
         if cancel and cancel():

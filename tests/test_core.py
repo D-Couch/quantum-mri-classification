@@ -13,6 +13,27 @@ def test_macro_f1_includes_absent_declared_class():
     assert result["accuracy"] == pytest.approx(2 / 3)
     assert result["macro_f1"] == pytest.approx((2 / 3 + 2 / 3 + 0) / 3)
     assert result["confusion_matrix"] == [[1, 1, 0], [0, 1, 0], [0, 0, 0]]
+    assert result["per_class"]["a"]["specificity"] == pytest.approx(1.0)
+    assert result["matthews_correlation_coefficient"] == pytest.approx(0.5)
+
+
+def test_score_metrics_compute_multiclass_roc_and_pr_auc():
+    result = classification_metrics(
+        ["a", "b", "c", "a", "b", "c"],
+        ["a", "b", "c", "a", "b", "c"],
+        ["a", "b", "c"],
+        [
+            [0.8, 0.1, 0.1],
+            [0.1, 0.8, 0.1],
+            [0.1, 0.1, 0.8],
+            [0.7, 0.2, 0.1],
+            [0.1, 0.7, 0.2],
+            [0.1, 0.2, 0.7],
+        ],
+    )
+    assert result["roc_auc_ovr_macro"] == pytest.approx(1.0)
+    assert result["pr_auc_macro"] == pytest.approx(1.0)
+    assert result["cohen_kappa"] == pytest.approx(1.0)
 
 
 def test_group_split_keeps_subjects_together_and_is_deterministic():
@@ -106,6 +127,17 @@ def test_hybrid_circuit_has_finite_gradients_and_updates():
     assert torch.isfinite(gradient).all()
     optimizer.step()
     assert not torch.equal(initial_weights, model.quantum.weights.detach())
+
+
+def test_classical_model_forward_shape():
+    torch = pytest.importorskip("torch")
+    pytest.importorskip("torchvision")
+    from mri_classifier.models import build_classical_model
+
+    model = build_classical_model("resnet18", num_classes=3, pretrained=False).eval()
+    with torch.inference_mode():
+        output = model(torch.rand(2, 3, 64, 64))
+    assert output.shape == (2, 3)
 
 
 def test_grouped_hybrid_training_vertical_slice_is_labeled_synthetic(tmp_path):
