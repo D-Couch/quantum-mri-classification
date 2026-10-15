@@ -180,3 +180,9 @@ def test_grouped_hybrid_training_vertical_slice_is_labeled_synthetic(tmp_path):
     assert report["split_strategy"] == "official_five_fold"
     assert report["test_fold"] == 5
     assert (tmp_path / "artifacts" / Path(report["checkpoint"]).name).exists()
+    from mri_classifier.inference import predict_image
+
+    prediction = predict_image(report["checkpoint"], records[0]["path"], device="cpu")
+    assert prediction["prediction"] in {"class_a", "class_b"}
+    assert sum(prediction["probabilities"].values()) == pytest.approx(1.0)
+    assert prediction["research_notice"].startswith("Research output only")

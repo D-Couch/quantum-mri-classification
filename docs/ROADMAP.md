@@ -9,9 +9,10 @@
 - [x] Install isolated dependencies; test metrics, group partitioning, persistence, and hybrid quantum gradient/update.
 - [x] Provide dataset inspector and dashboard training/evaluation workflow.
 - [x] Add a reusable, manifest-driven trainer and dashboard training/evaluation workflow.
+- [x] Add checkpoint loading and in-memory single-image inference; smoke-test probabilities sum to one.
 - [ ] Move dashboard training to a cancellable background process and add checkpoint recovery.
 - [ ] Move dashboard training to cancellable background jobs with checkpoint recovery.
-- [ ] Verify CI on GitHub.
+- [x] Verify GitHub Actions on the CPU-only workflow (latest pushed CI passed).
 
 ### Milestone 2 — Dataset Pipeline: real dataset imported and verified
 
@@ -55,7 +56,7 @@
 - Dependencies installed in `.venv` on Python 3.14: Streamlit, Pillow, NumPy, h5py, PyTorch, torchvision, scikit-learn, PennyLane, PennyLane-Lightning, pytest, and Ruff. Current local suite has 11 passing tests covering metrics, splits, persistence, model forward, hybrid gradients, importer, and training smoke path.
 - ML frameworks are declared in the `ml` extra; GitHub Actions installs CPU-only PyTorch wheels to avoid pulling CUDA runtime packages onto CI runners.
 - Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, and final test evaluation. Synthetic training tests are explicitly labeled. A real-data smoke run executed one CPU epoch on a deliberately small 15-patient subset, marked `experiment_kind=smoke`; its metrics are not research findings and are excluded from best-model selection. Full-dataset repeated baseline experiments remain outstanding.
-- The evaluation engine now reports macro/weighted F1, accuracy, balanced accuracy, per-class precision/recall/sensitivity/specificity, multiclass ROC-AUC and average precision, MCC, kappa, and confusion matrix. Current changes have not yet been pushed.
+- The evaluation engine now reports macro/weighted F1, accuracy, balanced accuracy, per-class precision/recall/sensitivity/specificity, multiclass ROC-AUC and average precision, MCC, kappa, and confusion matrix.
 - Figshare v5 archives are in ignored `data/raw/`; imported images/manifests are in ignored `data/figshare-v5/`. Source details, checksum findings, and class limitations are documented in `docs/DATASETS.md`.
 
 ## Decisions to investigate

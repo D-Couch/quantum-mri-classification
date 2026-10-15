@@ -160,6 +160,26 @@ elif page in {"History", "Model Comparison", "Best Model"}:
                 column.metric(title, f"{best['metrics']['macro_f1']:.3f}", help=best["id"])
             else:
                 column.metric(title, "Unavailable")
+        if completed:
+            st.subheader("Inference with best validated overall model")
+            best = max(completed, key=lambda r: r["metrics"]["macro_f1"])
+            report = best["metrics"].get("report", {})
+            uploaded = st.file_uploader(
+                "Choose a compatible MRI image", type=["png", "jpg", "jpeg", "bmp", "tif", "tiff"]
+            )
+            if uploaded and report.get("checkpoint"):
+                from io import BytesIO
+
+                from mri_classifier.inference import predict_image
+
+                prediction = predict_image(report["checkpoint"], BytesIO(uploaded.getvalue()))
+                st.write(f"Predicted class: **{prediction['prediction']}**")
+                st.bar_chart(prediction["probabilities"])
+                st.caption(prediction["research_notice"])
+        else:
+            st.caption(
+                "Inference is available after a real-data research model has been validated."
+            )
 else:
     st.info(
         "Compare only completed validated experiments; different datasets and protocols are not directly comparable."
