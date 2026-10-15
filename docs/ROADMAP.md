@@ -10,6 +10,7 @@
 - [x] Provide dataset inspector and dashboard training/evaluation workflow.
 - [x] Add a reusable, manifest-driven trainer and dashboard training/evaluation workflow.
 - [x] Add checkpoint loading and in-memory single-image inference; smoke-test probabilities sum to one.
+- [x] Restrict best-model selection and comparisons to matched dataset/class/split cohorts; exclude synthetic and smoke runs.
 - [ ] Move dashboard training to a cancellable background process and add checkpoint recovery.
 - [ ] Move dashboard training to cancellable background jobs with checkpoint recovery.
 - [x] Verify GitHub Actions on the CPU-only workflow (latest pushed CI passed).

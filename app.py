@@ -144,6 +144,32 @@ elif page in {"History", "Model Comparison", "Best Model"}:
             and r["config"].get("experiment_kind", "research") == "research"
             and "macro_f1" in r["metrics"]
         ]
+
+        def cohort_key(record):
+            config = record["config"]
+            report = record["metrics"].get("report", {})
+            return (
+                config.get("dataset_path"),
+                config.get("dataset_version"),
+                tuple(report.get("class_names", ())),
+                config.get("split_strategy"),
+                config.get("test_fold")
+                if config.get("split_strategy") == "official_five_fold"
+                else None,
+            )
+
+        cohorts = sorted({cohort_key(record) for record in completed}, key=str)
+        cohort_names = {
+            f"{dataset} · {version} · {','.join(classes)} · {split}"
+            + (f" test fold {fold}" if fold else ""): key
+            for key in cohorts
+            for dataset, version, classes, split, fold in [key]
+        }
+        if len(cohort_names) > 1:
+            chosen_cohort = st.selectbox("Comparable dataset and split cohort", list(cohort_names))
+            completed = [
+                record for record in completed if cohort_key(record) == cohort_names[chosen_cohort]
+            ]
         categories = {
             "Best overall": completed,
             "Best classical": [
@@ -179,6 +205,57 @@ elif page in {"History", "Model Comparison", "Best Model"}:
         else:
             st.caption(
                 "Inference is available after a real-data research model has been validated."
+            )
+    elif page == "Model Comparison":
+        comparable = [
+            r
+            for r in records
+            if r["status"] == "completed"
+            and r["config"].get("dataset_kind") == "real"
+            and r["config"].get("experiment_kind", "research") == "research"
+            and "macro_f1" in r["metrics"]
+        ]
+        if comparable:
+            comparison_keys = {
+                (
+                    r["config"].get("dataset_path"),
+                    r["config"].get("dataset_version"),
+                    tuple(r["metrics"].get("report", {}).get("class_names", ())),
+                    r["config"].get("split_strategy"),
+                    r["config"].get("test_fold"),
+                )
+                for r in comparable
+            }
+            for key in sorted(comparison_keys, key=str):
+                same = [
+                    r
+                    for r in comparable
+                    if (
+                        r["config"].get("dataset_path"),
+                        r["config"].get("dataset_version"),
+                        tuple(r["metrics"].get("report", {}).get("class_names", ())),
+                        r["config"].get("split_strategy"),
+                        r["config"].get("test_fold"),
+                    )
+                    == key
+                ]
+                st.subheader(" · ".join(str(part) for part in key if part is not None))
+                st.dataframe(
+                    [
+                        {
+                            "id": r["id"],
+                            "model": r["config"].get("model_family"),
+                            "architecture": r["config"].get("architecture"),
+                            "validation macro-F1": r["metrics"]["macro_f1"],
+                            "test accuracy": r["metrics"].get("test_metrics", {}).get("accuracy"),
+                        }
+                        for r in same
+                    ],
+                    use_container_width=True,
+                )
+        else:
+            st.info(
+                "No real-data research runs are available to compare. Smoke and synthetic runs are excluded."
             )
 else:
     st.info(
