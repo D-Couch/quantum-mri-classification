@@ -44,8 +44,8 @@
 - [x] Implement trainable hybrid model and gradient/update tests.
 - [x] Run one matched-fold hybrid pilot against a scratch ResNet18 control; this single seed/fold result is preliminary.
 - [x] Repeat matched scratch/hybrid comparison across seeds 42–44 on all five official folds.
-- [ ] Profile simulator alternatives.
-- [ ] Profile CPU and compatible accelerated simulators.
+- [x] Profile `default.qubit` and `lightning.qubit` on a matched one-epoch CPU smoke run; results are in `docs/DATASETS.md`.
+- [ ] Profile accelerated quantum simulators when a compatible backend is available (`lightning.gpu` is not installed/exposed here).
 
 ### Milestone 5 — Model Selection and Research: fixed-protocol five-fold pilot and patient bootstrap complete
 

@@ -50,6 +50,15 @@
 
   CUDA FP32 was about 3.8× faster than CPU FP32 by median duration. Two workers reduced median duration by about 34% compared with CUDA FP32 at zero workers in this profile. The FP16 and FP32 ranges overlap, so this profile shows no clear AMP speed benefit. Runs were repeated without a separate warm-up phase and are only one-epoch pipeline smoke measurements; timing may include startup effects. Repeat with warm-up and compare multi-epoch validation behavior before choosing defaults. Effective device, workers, pinned-memory state, and AMP activation are recorded in each report; all 12 successful run records are in the local SQLite index. The dashboard defaults to automatic device selection, zero workers, and AMP off.
 
+- **Quantum simulator profile (smoke only):** Hybrid classifier with four qubits, depth two, seed 42, batch size 32, one epoch, official test fold 1 and validation fold 2. All runs used the CPU; three runs per backend:
+
+  | PennyLane backend | Median duration (range) |
+  | --- | ---: |
+  | `default.qubit` | 7.3 s (6.9–7.5) |
+  | `lightning.qubit` | 12.4 s (11.9–12.7) |
+
+  This small-circuit CPU profile did not show a `lightning.qubit` speed advantage. `lightning.gpu` is unavailable in this environment, so no accelerated quantum simulator was measured. These one-epoch smoke timings do not establish general backend performance.
+
 ## References
 
 1. Cheng J, Huang W, Cao S, et al. *Enhanced Performance of Brain Tumor Classification via Tumor Region Augmentation and Partition*. PLOS ONE 10(10): e0140381 (2015). [Article](https://doi.org/10.1371/journal.pone.0140381).
