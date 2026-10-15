@@ -70,7 +70,75 @@ def test_store_migrates_existing_schema_with_progress(tmp_path):
     store = ExperimentStore(path)
     experiment_id = store.create({"dataset": "x"})
     store.update_progress(experiment_id, {"epoch": 2})
-    assert store.list()[0]["progress"] == {"epoch": 2}
+    row = store.list()[0]
+    assert row["progress"] == {"epoch": 2}
+    assert row["parent_id"] is None
+    assert row["resume_checkpoint"] is None
+
+
+def test_training_manager_recovers_stale_jobs_and_warm_starts_checkpoint(tmp_path, monkeypatch):
+    import json
+
+    import torch
+
+    from mri_classifier import jobs
+    from mri_classifier.jobs import TrainingManager
+
+    monkeypatch.chdir(tmp_path)
+    store = ExperimentStore(tmp_path / "runs.sqlite3")
+    config = ExperimentConfig(dataset_path="synthetic", dataset_kind="synthetic")
+    dead_pid = 2**30
+    parent_id = store.create(config.to_dict(), status="running", worker_pid=dead_pid)
+    completed_id = store.create(config.to_dict(), status="running", worker_pid=dead_pid)
+    checkpoint = tmp_path / "artifacts" / parent_id / "epoch-best.pt"
+    checkpoint.parent.mkdir(parents=True)
+    torch.save(
+        {
+            "model": {},
+            "labels": ["a", "b"],
+            "config": config.to_dict(),
+            "best_epoch": 1,
+            "best_score": 0.5,
+            "history": [],
+        },
+        checkpoint,
+    )
+    completed_checkpoint = tmp_path / "artifacts" / completed_id / "epoch-best.pt"
+    completed_checkpoint.parent.mkdir(parents=True)
+    completed_checkpoint.write_bytes(b"completed-checkpoint")
+    report = {
+        "status": "completed",
+        "checkpoint": str(completed_checkpoint),
+        "validation_macro_f1": 0.8,
+        "test_metrics": {"accuracy": 0.85},
+    }
+    (completed_checkpoint.parent / "final-report.json").write_text(
+        json.dumps(report), encoding="utf-8"
+    )
+
+    def fake_run(config, rows, output_dir, progress, cancel, resume_from):
+        assert resume_from == checkpoint
+        return object(), {"validation_macro_f1": 0.7, "test_metrics": {"accuracy": 0.75}}
+
+    monkeypatch.setattr(jobs, "run_experiment", fake_run)
+    monkeypatch.setattr(jobs, "load_manifest", lambda *_: [])
+    manager = TrainingManager(store)
+    try:
+        parent = next(row for row in store.list() if row["id"] == parent_id)
+        assert parent["status"] == "failed"
+        assert "process stopped" in parent["error"].lower()
+        completed = next(row for row in store.list() if row["id"] == completed_id)
+        assert completed["status"] == "completed"
+        assert completed["metrics"]["recovered_after_restart"] is True
+        assert manager.can_resume(parent_id)
+        resumed_id = manager.resume(parent_id)
+        manager.wait(timeout=5)
+        resumed = next(row for row in store.list() if row["id"] == resumed_id)
+        assert resumed["status"] == "completed"
+        assert resumed["parent_id"] == parent_id
+        assert resumed["resume_checkpoint"] == str(checkpoint)
+    finally:
+        manager.shutdown()
 
 
 def test_background_job_persists_progress_and_result(tmp_path, monkeypatch):
@@ -288,6 +356,16 @@ def test_grouped_hybrid_training_vertical_slice_is_labeled_synthetic(tmp_path):
     assert report["split_strategy"] == "official_five_fold"
     assert report["test_fold"] == 5
     assert (tmp_path / "artifacts" / Path(report["checkpoint"]).name).exists()
+    resumed_config = ExperimentConfig(**{**config.to_dict(), "epochs": 2})
+    _, resumed_report = run_experiment(
+        resumed_config,
+        records,
+        tmp_path / "resumed-artifacts",
+        resume_from=report["checkpoint"],
+    )
+    assert resumed_report["resumed_from_checkpoint"] == report["checkpoint"]
+    assert resumed_report["resumed_from_epoch"] == report["best_epoch"]
+    assert resumed_report["resume_state"] == "optimizer_and_scheduler_reset"
     from mri_classifier.inference import predict_image
 
     prediction = predict_image(report["checkpoint"], records[0]["path"], device="cpu")

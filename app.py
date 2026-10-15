@@ -23,12 +23,15 @@ page = st.sidebar.radio(
     ],
 )
 store = ExperimentStore()
-records = store.list()
 
 
 @st.cache_resource
 def training_manager():
     return TrainingManager(store)
+
+
+training_manager()
+records = store.list()
 
 
 if page == "Home":
@@ -145,6 +148,23 @@ elif page in {"History", "Model Comparison", "Best Model"}:
             ],
             use_container_width=True,
         )
+    if page == "History":
+        recoverable = [
+            record
+            for record in records
+            if record["status"] == "failed" and training_manager().can_resume(record["id"])
+        ]
+        for record in recoverable:
+            st.write(
+                f"Experiment {record['id']} stopped before completion. "
+                "A warm start restores its best validation checkpoint; optimizer state resets."
+            )
+            if st.button("Resume from best checkpoint", key=f"resume-{record['id']}"):
+                try:
+                    resumed_id = training_manager().resume(record["id"])
+                    st.success(f"Recovery job {resumed_id} started. Follow it in Live Training.")
+                except Exception as exc:  # noqa: BLE001 - report recovery errors in the UI
+                    st.error(f"Could not resume experiment: {exc}")
     if page == "Best Model":
         completed = [
             r

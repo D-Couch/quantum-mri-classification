@@ -15,30 +15,47 @@ class ExperimentStore:
             db.execute("""CREATE TABLE IF NOT EXISTS experiments (
                 id TEXT PRIMARY KEY, created_at TEXT NOT NULL, status TEXT NOT NULL,
                 config TEXT NOT NULL, metrics TEXT NOT NULL, error TEXT,
-                progress TEXT NOT NULL DEFAULT '{}'
+                progress TEXT NOT NULL DEFAULT '{}', parent_id TEXT,
+                resume_checkpoint TEXT, worker_pid INTEGER
             )""")
             columns = {row[1] for row in db.execute("PRAGMA table_info(experiments)")}
             if "progress" not in columns:
                 db.execute("ALTER TABLE experiments ADD COLUMN progress TEXT NOT NULL DEFAULT '{}'")
+            if "parent_id" not in columns:
+                db.execute("ALTER TABLE experiments ADD COLUMN parent_id TEXT")
+            if "resume_checkpoint" not in columns:
+                db.execute("ALTER TABLE experiments ADD COLUMN resume_checkpoint TEXT")
+            if "worker_pid" not in columns:
+                db.execute("ALTER TABLE experiments ADD COLUMN worker_pid INTEGER")
 
     def _connect(self):
         db = sqlite3.connect(self.path)
         db.row_factory = sqlite3.Row
         return db
 
-    def create(self, config: dict, status: str = "queued") -> str:
+    def create(
+        self,
+        config: dict,
+        status: str = "queued",
+        parent_id: str | None = None,
+        resume_checkpoint: str | None = None,
+        worker_pid: int | None = None,
+    ) -> str:
         if status not in {"queued", "running", "completed", "failed", "cancelled"}:
             raise ValueError("invalid experiment status")
         experiment_id = str(uuid.uuid4())
         with self._connect() as db:
             db.execute(
-                "INSERT INTO experiments (id,created_at,status,config,metrics,error,progress) VALUES (?,?,?,?,?,NULL,'{}')",
+                "INSERT INTO experiments (id,created_at,status,config,metrics,error,progress,parent_id,resume_checkpoint,worker_pid) VALUES (?,?,?,?,?,NULL,'{}',?,?,?)",
                 (
                     experiment_id,
                     datetime.now(UTC).isoformat(),
                     status,
                     json.dumps(config, sort_keys=True),
                     "{}",
+                    parent_id,
+                    resume_checkpoint,
+                    worker_pid,
                 ),
             )
         return experiment_id
@@ -47,18 +64,19 @@ class ExperimentStore:
         status = "failed" if error else "completed"
         with self._connect() as db:
             result = db.execute(
-                "UPDATE experiments SET status=?, metrics=?, error=? WHERE id=?",
+                "UPDATE experiments SET status=?, metrics=?, error=?, worker_pid=NULL WHERE id=?",
                 (status, json.dumps(metrics, sort_keys=True), error, experiment_id),
             )
             if not result.rowcount:
                 raise KeyError(experiment_id)
 
-    def set_status(self, experiment_id: str, status: str):
+    def set_status(self, experiment_id: str, status: str, worker_pid: int | None = None):
         if status not in {"queued", "running", "cancelled"}:
             raise ValueError("status must be queued, running, or cancelled")
         with self._connect() as db:
             result = db.execute(
-                "UPDATE experiments SET status=? WHERE id=?", (status, experiment_id)
+                "UPDATE experiments SET status=?, worker_pid=? WHERE id=?",
+                (status, worker_pid, experiment_id),
             )
             if not result.rowcount:
                 raise KeyError(experiment_id)

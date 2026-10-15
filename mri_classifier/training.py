@@ -47,7 +47,9 @@ def _git_revision():
         return "unknown"
 
 
-def run_experiment(config, rows, output_dir="artifacts", progress=None, cancel=None):
+def run_experiment(
+    config, rows, output_dir="artifacts", progress=None, cancel=None, resume_from=None
+):
     """Train by validation macro-F1; use the final test partition once at the end.
 
     The manifest must identify patient/group IDs. Dataset license, source, and version must
@@ -135,7 +137,8 @@ def run_experiment(config, rows, output_dir="artifacts", progress=None, cancel=N
         if is_hybrid
         else build_classical_model(config.architecture, len(label_names), pretrained)
     )
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # PennyLane's current default.qubit/lightning.qubit backends are CPU simulators.
+    device = torch.device("cuda" if torch.cuda.is_available() and not is_hybrid else "cpu")
     model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.learning_rate)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", patience=2)
@@ -145,6 +148,28 @@ def run_experiment(config, rows, output_dir="artifacts", progress=None, cancel=N
     run_id = f"{int(time.time())}-{config.seed}"
     checkpoint = out / f"{run_id}-best.pt"
     history, best_score, best_epoch, stale = [], -1.0, -1, 0
+    resumed_from_epoch = None
+    if resume_from is not None:
+        state = torch.load(resume_from, map_location=device, weights_only=True)
+        saved_config = state.get("config", {}).copy()
+        current_config = config.to_dict()
+        saved_config.pop("epochs", None)
+        current_config.pop("epochs", None)
+        if saved_config != current_config:
+            raise ValueError("resume checkpoint configuration does not match this experiment")
+        if state.get("labels") != label_names:
+            raise ValueError("resume checkpoint class labels do not match the dataset")
+        if not all(key in state for key in ("best_epoch", "best_score", "history")):
+            raise ValueError("checkpoint predates safe warm-start recovery and cannot be resumed")
+        model.load_state_dict(state["model"])
+        best_epoch = int(state["best_epoch"])
+        best_score = float(state["best_score"])
+        history = state["history"]
+        if best_epoch > config.epochs:
+            raise ValueError("resume epoch exceeds the configured epoch limit")
+        resumed_from_epoch = best_epoch
+        state["config"] = config.to_dict()
+        torch.save(state, checkpoint)
     started = time.perf_counter()
 
     def evaluate(loader):
@@ -162,7 +187,7 @@ def run_experiment(config, rows, output_dir="artifacts", progress=None, cancel=N
                 score_rows.extend(probabilities.cpu().tolist())
         return classification_metrics(true, pred, label_names, score_rows), total_loss / count
 
-    for epoch in range(config.epochs):
+    for epoch in range(resumed_from_epoch or 0, config.epochs):
         if cancel and cancel():
             raise InterruptedError("experiment cancelled")
         model.train()
@@ -191,7 +216,14 @@ def run_experiment(config, rows, output_dir="artifacts", progress=None, cancel=N
         if validation["macro_f1"] > best_score:
             best_score, best_epoch, stale = validation["macro_f1"], epoch + 1, 0
             torch.save(
-                {"model": model.state_dict(), "labels": label_names, "config": config.to_dict()},
+                {
+                    "model": model.state_dict(),
+                    "labels": label_names,
+                    "config": config.to_dict(),
+                    "best_epoch": best_epoch,
+                    "best_score": best_score,
+                    "history": history,
+                },
                 checkpoint,
             )
         else:
@@ -230,6 +262,9 @@ def run_experiment(config, rows, output_dir="artifacts", progress=None, cancel=N
         "test_loss": test_loss,
         "checkpoint": str(checkpoint),
         "duration_seconds": time.perf_counter() - started,
+        "resumed_from_checkpoint": str(resume_from) if resume_from is not None else None,
+        "resumed_from_epoch": resumed_from_epoch,
+        "resume_state": "optimizer_and_scheduler_reset" if resume_from is not None else None,
         "parameters": sum(p.numel() for p in model.parameters()),
         "pretrained_weights": (
             f"torchvision.models.{config.architecture}_Weights.DEFAULT (ImageNet)"

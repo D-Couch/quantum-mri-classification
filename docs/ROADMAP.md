@@ -13,7 +13,7 @@
 - [x] Restrict best-model selection and comparisons to matched dataset/class/split cohorts; exclude synthetic and smoke runs.
 - [x] Move dashboard training to a cancellable background process.
 - [x] Run dashboard training in a single cancellable background worker with persisted epoch progress and duplicate-job prevention.
-- [ ] Add safe recovery/resumption of interrupted jobs from checkpoints.
+- [x] Reconcile interrupted jobs after restart; recover final reports without rerunning test evaluation, and offer guarded warm-start from a compatible best checkpoint with parent linkage and optimizer/scheduler reset recorded.
 - [x] Verify GitHub Actions on the CPU-only workflow (latest pushed CI passed).
 
 ### Milestone 2 — Dataset Pipeline: real dataset imported and verified
@@ -54,16 +54,17 @@
 ### Milestone 6 — Performance Optimization: not started
 
 - [ ] Evaluate architecture/hyperparameter alternatives, ensembles, augmentation, and GPU pipeline.
-- [ ] Measure on the target RTX 4090; document any unavailable verification.
+- [x] Verify the exposed RTX 4090 and measure a full-dataset one-epoch CUDA smoke run (10.16 seconds; smoke only).
+- [ ] Profile matched CPU/GPU throughput, optimize input pipeline, and test mixed precision.
 
 ## Current blockers and verification
 
 - Current runtime: Python 3.14.8, Linux x86_64. Installed Git 2.56 and GitHub CLI 2.102.0. Outside-sandbox `gh auth status` confirmed D-Couch keyring authentication; GitHub API is reachable; the private repository and remote are verified.
-- `nvidia-smi` cannot communicate with an NVIDIA driver. This environment does not establish target workstation capability.
-- Dependencies installed in `.venv` on Python 3.14: Streamlit, Pillow, NumPy, h5py, PyTorch, torchvision, scikit-learn, PennyLane, PennyLane-Lightning, pytest, and Ruff. Current local suite has 15 passing tests covering metrics, splits, persistence/migration, model forward, hybrid gradients, importer, training/inference, background job progress/cancellation, and dashboard views.
+- This runtime exposes an NVIDIA GeForce RTX 4090 with driver 615.78.08, CUDA 13.0, and 24,564 MiB total memory. A full 3,064-image one-epoch ResNet18 smoke run on official folds completed on CUDA in 10.16 seconds; it is labeled `experiment_kind=smoke` and is not a research result. Matched CPU/GPU performance profiling remains outstanding.
+- Dependencies installed in `.venv` on Python 3.14: Streamlit, Pillow, NumPy, h5py, PyTorch, torchvision, scikit-learn, PennyLane, PennyLane-Lightning, pytest, and Ruff. Current local suite has 16 passing tests covering metrics, splits, persistence/migration, model forward, hybrid gradients, importer, training/inference, background job progress/cancellation/recovery, and dashboard views.
 - ML frameworks are declared in the `ml` extra; GitHub Actions installs CPU-only PyTorch wheels to avoid pulling CUDA runtime packages onto CI runners.
 - Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, and final test evaluation. Synthetic training tests are explicitly labeled. A separate full-dataset one-epoch run is marked `experiment_kind=smoke` and excluded from best-model selection. Scratch, ImageNet transfer, and hybrid pilots completed. A matched fold 3 scratch/hybrid comparison produced macro-F1 0.843 versus 0.580; this is one seed/fold only. The separate scratch and transfer baselines used different held-out folds (macro-F1 0.822 and 0.929) and are not directly comparable. Repeated matched runs and uncertainty estimates remain outstanding.
-- The evaluation engine reports macro/weighted F1, accuracy, balanced accuracy, per-class precision/recall/sensitivity/specificity, multiclass ROC-AUC and average precision, MCC, kappa, and confusion matrix. Training runs off the Streamlit request path and persists epoch progress. A real full-dataset one-epoch smoke run completed in 45.4 seconds on CPU, saved its checkpoint, and was excluded from best-model selection; its scores are not research findings.
+- The evaluation engine reports macro/weighted F1, accuracy, balanced accuracy, per-class precision/recall/sensitivity/specificity, multiclass ROC-AUC and average precision, MCC, kappa, and confusion matrix. Training runs off the Streamlit request path and persists epoch progress. The current one-epoch CUDA smoke report and recovery lineage are stored in SQLite. Classical training uses CUDA when available; current PennyLane CPU simulators remain on CPU to avoid device mismatch.
 - Figshare v5 archives are in ignored `data/raw/`; imported images/manifests are in ignored `data/figshare-v5/`. Source details, checksum findings, and class limitations are documented in `docs/DATASETS.md`.
 
 ## Decisions to investigate
