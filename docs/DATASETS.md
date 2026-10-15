@@ -13,7 +13,18 @@
 - **Import verification:** All four archive MD5s matched official Figshare API metadata. Import yielded 3,064 readable images, 233 patient IDs, expected class counts, and zero patient/fold conflicts.
 - **Initial measured baseline (preliminary, not a final benchmark):** ResNet18 trained from scratch, seed 42, official fold 5 held out for test, fold 1 for validation, and the remaining folds for training. Checkpoint selection used validation macro-F1; early stopping ended after 8 epochs, with best epoch 3. On the 643-image test fold: accuracy 0.829, macro-F1 0.822, balanced accuracy 0.831, macro ROC-AUC 0.927, and macro average precision 0.850. Runtime was 339 seconds on CPU. This is one seed and one fold with no independent replication, so it is preliminary and not directly comparable with Cheng et al.'s reported results.
 - **Initial transfer result (preliminary, separate fold):** ResNet18 initialized with torchvision's default ImageNet weights (`ResNet18_Weights.DEFAULT`), seed 42, official fold 4 held out for test, fold 5 for validation, and folds 1–3 for training. Validation macro-F1 selected the checkpoint; early stopping ended after 8 epochs, with best epoch 3. On the 628-image test fold: accuracy 0.946, macro-F1 0.929, balanced accuracy 0.921, macro ROC-AUC 0.994, and macro average precision 0.983. Runtime was 71.6 seconds on CPU. The held-out fold differs from the scratch run, so these scores are not a direct model comparison; both are single-seed preliminary results without uncertainty estimates.
-- **Repeated matched comparison (preliminary):** Scratch ResNet18, ImageNet transfer ResNet18, and the hybrid model used seeds 42, 43, and 44 with official fold 3 as test (572 images), fold 4 as validation, and folds 1, 2, and 5 as training. Mean test macro-F1 ± sample SD across seeds: scratch **0.858 ± 0.018**, transfer **0.933 ± 0.006**, hybrid **0.497 ± 0.072**. Mean accuracy ± sample SD: scratch 0.862 ± 0.019, transfer 0.938 ± 0.007, hybrid 0.615 ± 0.028. Classical runs used CUDA on the RTX 4090; the hybrid model used CPU `lightning.qubit`, with 4 qubits and depth 2. These are three-seed estimates on one held-out fold, not cross-fold uncertainty or a final benchmark. The hybrid scores were lower and more variable in this protocol; further work should focus on validation-fold diagnostics and repeated official folds.
+- **Repeated matched comparison (preliminary):** Scratch ResNet18, ImageNet transfer ResNet18, and the hybrid model used seeds 42, 43, and 44 on two official test folds. Each row reports test mean ± sample SD across those three seeds.
+
+  | Test fold (validation fold; test images) | Model | Macro-F1 | Accuracy |
+  | --- | --- | ---: | ---: |
+  | 2 (3; 679) | ResNet18 scratch | 0.805 ± 0.019 | 0.819 ± 0.015 |
+  | 2 (3; 679) | ResNet18 ImageNet transfer | 0.908 ± 0.019 | 0.917 ± 0.018 |
+  | 2 (3; 679) | Hybrid, 4 qubits, depth 2 | 0.472 ± 0.001 | 0.629 ± 0.001 |
+  | 3 (4; 572) | ResNet18 scratch | 0.858 ± 0.018 | 0.862 ± 0.019 |
+  | 3 (4; 572) | ResNet18 ImageNet transfer | 0.933 ± 0.006 | 0.938 ± 0.007 |
+  | 3 (4; 572) | Hybrid, 4 qubits, depth 2 | 0.497 ± 0.072 | 0.615 ± 0.028 |
+
+  The remaining folds formed each training split. Classical runs used CUDA on the RTX 4090; the hybrid model used CPU `lightning.qubit`. These are seed-variation estimates within two fixed official folds, not a final five-fold estimate or a final benchmark. The hybrid scores were lower on both folds; broader fold coverage and validation-only diagnostics remain necessary.
 
 ## References
 
