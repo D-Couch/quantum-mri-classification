@@ -267,6 +267,50 @@ def test_patient_cluster_bootstrap_resamples_whole_groups_deterministically():
     assert interval[1] == 0
 
 
+def test_research_csv_export_omits_local_paths_and_escapes_formulas():
+    import csv
+    from io import StringIO
+
+    from mri_classifier.exports import research_results_csv
+
+    content = research_results_csv(
+        [
+            {
+                "id": "run-1",
+                "created_at": "2026-10-15T12:00:00+00:00",
+                "config": {
+                    "dataset_path": "/private/data",
+                    "manifest_path": "/private/manifest.csv",
+                    "dataset_version": "=2+3",
+                    "dataset_kind": "real",
+                    "split_strategy": "official_five_fold",
+                    "test_fold": 1,
+                    "model_family": "classical",
+                    "architecture": "resnet18",
+                    "training_mode": "scratch",
+                    "seed": 42,
+                },
+                "metrics": {
+                    "macro_f1": 0.9,
+                    "test_metrics": {"macro_f1": 0.89, "accuracy": 0.9},
+                    "report": {
+                        "class_names": ["glioma", "meningioma"],
+                        "checkpoint": "/private/checkpoint.pt",
+                        "hardware": {"device": "cuda"},
+                        "git_revision": "abc123",
+                    },
+                },
+            }
+        ]
+    )
+    row = next(csv.DictReader(StringIO(content)))
+
+    assert row["dataset_version"] == "'=2+3"
+    assert "dataset_path" not in row
+    assert "/private" not in content
+    assert "patient_id" not in content
+
+
 def test_dashboard_home_and_live_training_view():
     from streamlit.testing.v1 import AppTest
 

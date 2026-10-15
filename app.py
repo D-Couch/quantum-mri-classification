@@ -254,6 +254,14 @@ elif page in {"History", "Model Comparison", "Best Model"}:
             and "macro_f1" in r["metrics"]
         ]
         if comparable:
+            from mri_classifier.exports import research_results_csv
+
+            st.download_button(
+                "Download comparable runs (CSV)",
+                data=research_results_csv(comparable),
+                file_name="mri-classification-results.csv",
+                mime="text/csv",
+            )
             comparison_keys = {
                 (
                     r["config"].get("dataset_path"),
