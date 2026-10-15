@@ -60,7 +60,8 @@
 - [x] Verify the exposed RTX 4090 and measure a full-dataset one-epoch CUDA smoke run (10.16 seconds; smoke only).
 - [x] Add explicit device selection, configurable data-loader workers, opt-in CUDA mixed precision, and persist effective settings in reports.
 - [x] Run a matched one-epoch CPU/GPU and CUDA input-pipeline/AMP smoke profile; results are in `docs/DATASETS.md` and SQLite.
-- [ ] Repeat timing with warm-up and multiple runs, check validation stability, and optimize pipeline/precision settings.
+- [x] Repeat each profile setting to three runs and summarize medians/ranges; no warm-up was used.
+- [ ] Measure with warm-up, check multi-epoch validation stability, and optimize pipeline/precision settings.
 
 ## Current blockers and verification
 
