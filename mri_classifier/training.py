@@ -116,6 +116,24 @@ def run_experiment(
     pretrained = config.training_mode == "transfer"
     if is_hybrid and pretrained:
         raise ValueError("transfer mode is currently available for classical models only")
+    torchvision_version = None
+    pretrained_checkpoint = None
+    if not is_hybrid:
+        import torchvision
+
+        torchvision_version = torchvision.__version__
+        if pretrained:
+            weight_types = {
+                "resnet18": torchvision.models.ResNet18_Weights,
+                "efficientnet_b0": torchvision.models.EfficientNet_B0_Weights,
+            }
+            weight_type = weight_types.get(config.architecture)
+            if weight_type is not None:
+                selected_weights = weight_type.DEFAULT
+                pretrained_checkpoint = {
+                    "identifier": f"torchvision.models.{type(selected_weights).__name__}.{selected_weights.name}",
+                    "url": selected_weights.url,
+                }
     size = 64 if is_hybrid else 224
     datasets = {
         name: ManifestImageDataset(rows, indices, label_names, size, is_hybrid, pretrained)
@@ -279,7 +297,11 @@ def run_experiment(
         "test_fold": config.test_fold if config.split_strategy == "official_five_fold" else None,
         "config": config.to_dict(),
         "seed": config.seed,
-        "software": {"python": platform.python_version(), "torch": torch.__version__},
+        "software": {
+            "python": platform.python_version(),
+            "torch": torch.__version__,
+            "torchvision": torchvision_version,
+        },
         "hardware": {
             "device": str(device),
             "cuda": torch.version.cuda if device.type == "cuda" else None,
@@ -304,10 +326,9 @@ def run_experiment(
         "resume_state": "optimizer_and_scheduler_reset" if resume_from is not None else None,
         "parameters": sum(p.numel() for p in model.parameters()),
         "pretrained_weights": (
-            f"torchvision.models.{config.architecture}_Weights.DEFAULT (ImageNet)"
-            if pretrained and not is_hybrid
-            else None
+            pretrained_checkpoint["identifier"] if pretrained_checkpoint is not None else None
         ),
+        "pretrained_checkpoint": pretrained_checkpoint,
         "quantum": (
             {
                 "qubits": config.qubits,

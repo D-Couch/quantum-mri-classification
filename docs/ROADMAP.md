@@ -52,7 +52,7 @@
 - [x] Compare three-seed matched-fold results and report per-fold mean/sample SD for all five official folds.
 - [x] Aggregate validation macro-F1 across folds and seeds for validation-based family selection; report test results descriptively without using them for selection.
 - [x] Select ImageNet transfer as the leading family in this fixed pilot: it has the highest mean validation macro-F1 on each fold.
-- [x] Add patient-cluster bootstrap intervals for pooled out-of-fold predictions, conditional on the checkpoints and three seeds.
+- [x] Add patient-cluster bootstrap intervals for pooled out-of-fold predictions across four model families, conditional on the checkpoints and three seeds.
 - [x] Provide dashboard best overall/classical/hybrid selection from completed real-data research runs using validation macro-F1.
 - [x] Cite Cheng et al. and the Figshare dataset with protocol/class qualifiers; document why the published methods are not a direct comparison.
 - [x] Add a CSV export for comparable completed real-data research runs; keep local paths, checkpoints, and patient identifiers out of the export.
@@ -62,7 +62,8 @@
 ### Milestone 6 — Performance Optimization: RTX 4090 verified; optimization profiling outstanding
 
 - [x] Compare scratch EfficientNet-B0 against matched scratch ResNet18 on all five folds and seeds 42–44; use validation macro-F1 for selection and report the patient bootstrap descriptively.
-- [ ] Evaluate additional architectures and transfer alternatives after confirming checkpoint provenance; then consider ensembles and augmentation.
+- [x] Confirm EfficientNet-B0 ImageNet weight source and terms caveat; run a three-seed, one-fold transfer pilot and do not extend it because its validation mean did not improve.
+- [ ] Evaluate additional architectures and transfer alternatives with confirmed provenance; then consider ensembles and augmentation.
 - [ ] Profile and optimize the GPU input pipeline after repeated warm-up measurements.
 - [x] Verify the exposed RTX 4090 and measure a full-dataset one-epoch CUDA smoke run (10.16 seconds; smoke only).
 - [x] Add explicit device selection, configurable data-loader workers, opt-in CUDA mixed precision, and persist effective settings in reports.
