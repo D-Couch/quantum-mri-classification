@@ -37,6 +37,17 @@
 
   Across the five folds, the unweighted mean of each fold's three-seed test macro-F1 mean was 0.834 for scratch ResNet18, 0.920 for ImageNet transfer ResNet18, and 0.490 for the hybrid. The sample SD across the five fold means was 0.023, 0.019, and 0.010, respectively. These describe fold spread, not confidence intervals; folds and patient groups are not independent replicates. The test summaries are descriptive and were not used for model selection. This fixed three-seed protocol is a research pilot, not a clinical result or directly comparable Cheng et al. benchmark.
 
+- **Initial throughput profile (smoke only):** ResNet18 scratch, seed 42, batch size 32, one epoch, official test fold 1, validation fold 2, same dataset and code revision. Runs are labeled `experiment_kind=smoke`; their metrics are not model-selection evidence. Wall time recorded by the training reports:
+
+  | Device and settings | Duration | SQLite experiment ID |
+  | --- | ---: | --- |
+  | CPU, 0 workers, FP32 | 41.5 s | `67b8418d-cae5-44d1-93d6-c2cde0b74757` |
+  | RTX 4090, 0 workers, FP32 | 10.8 s | `fbe6e1cf-6053-4a85-96dc-0d348cd42517` |
+  | RTX 4090, 2 workers, FP32 | 7.6 s | `cfe2ac6d-5b49-431b-949a-d07f6a410d02` |
+  | RTX 4090, 0 workers, CUDA FP16 autocast | 9.3 s | `25ece6d7-ae46-49f4-822b-e7ebb1d0a480` |
+
+  These are single measurements without warm-up or repeated trials. They suggest CUDA was about 3.8× faster than this CPU run, and two loader workers helped in this short run; they do not establish stable speedups. AMP was slower than the two-worker FP32 measurement here. Repeat with warm-up and multiple runs, then compare validation behavior before choosing defaults. Effective device, workers, pinned-memory state, and AMP activation are recorded in each report. The dashboard defaults to automatic device selection, zero workers, and AMP off.
+
 ## References
 
 1. Cheng J, Huang W, Cao S, et al. *Enhanced Performance of Brain Tumor Classification via Tumor Region Augmentation and Partition*. PLOS ONE 10(10): e0140381 (2015). [Article](https://doi.org/10.1371/journal.pone.0140381).

@@ -7,6 +7,7 @@ import platform
 import random
 import subprocess
 import time
+from contextlib import nullcontext
 from pathlib import Path
 
 from PIL import Image
@@ -120,16 +121,6 @@ def run_experiment(
         name: ManifestImageDataset(rows, indices, label_names, size, is_hybrid, pretrained)
         for name, indices in splits.items()
     }
-    loaders = {
-        name: DataLoader(
-            ds,
-            batch_size=config.batch_size,
-            shuffle=name == "train",
-            num_workers=0,
-            pin_memory=torch.cuda.is_available(),
-        )
-        for name, ds in datasets.items()
-    }
     model = (
         build_hybrid_model(
             len(label_names), config.qubits, config.circuit_depth, config.quantum_backend
@@ -138,11 +129,43 @@ def run_experiment(
         else build_classical_model(config.architecture, len(label_names), pretrained)
     )
     # PennyLane's current default.qubit/lightning.qubit backends are CPU simulators.
-    device = torch.device("cuda" if torch.cuda.is_available() and not is_hybrid else "cpu")
+    if is_hybrid and config.device_preference == "cuda":
+        raise ValueError("the configured PennyLane hybrid simulators currently run on CPU")
+    if config.device_preference == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA was requested but is unavailable")
+    device = torch.device(
+        "cuda"
+        if not is_hybrid
+        and (
+            config.device_preference == "cuda"
+            or (config.device_preference == "auto" and torch.cuda.is_available())
+        )
+        else "cpu"
+    )
+    mixed_precision_enabled = bool(config.mixed_precision and device.type == "cuda")
+    loaders = {
+        name: DataLoader(
+            ds,
+            batch_size=config.batch_size,
+            shuffle=name == "train",
+            num_workers=config.num_workers,
+            pin_memory=device.type == "cuda",
+            persistent_workers=config.num_workers > 0,
+            **({"prefetch_factor": 2} if config.num_workers > 0 else {}),
+        )
+        for name, ds in datasets.items()
+    }
     model.to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=config.learning_rate)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode="max", patience=2)
     criterion = torch.nn.CrossEntropyLoss()
+    scaler = torch.amp.GradScaler("cuda", enabled=mixed_precision_enabled)
+
+    def compute_context():
+        if mixed_precision_enabled:
+            return torch.autocast(device_type="cuda", dtype=torch.float16)
+        return nullcontext()
+
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     run_id = f"{int(time.time())}-{config.seed}"
@@ -177,9 +200,12 @@ def run_experiment(
         true, pred, score_rows, total_loss, count = [], [], [], 0.0, 0
         with torch.inference_mode():
             for images, targets in loader:
-                images, targets = images.to(device), targets.to(device)
-                outputs = model(images)
-                total_loss += criterion(outputs, targets).item() * targets.size(0)
+                images = images.to(device, non_blocking=device.type == "cuda")
+                targets = targets.to(device, non_blocking=device.type == "cuda")
+                with compute_context():
+                    outputs = model(images)
+                    loss = criterion(outputs, targets)
+                total_loss += loss.item() * targets.size(0)
                 count += targets.size(0)
                 true.extend(label_names[i] for i in targets.cpu().tolist())
                 probabilities = outputs.softmax(dim=1)
@@ -193,14 +219,18 @@ def run_experiment(
         model.train()
         total_loss, count = 0.0, 0
         for images, targets in loaders["train"]:
-            images, targets = images.to(device), targets.to(device)
+            images = images.to(device, non_blocking=device.type == "cuda")
+            targets = targets.to(device, non_blocking=device.type == "cuda")
             optimizer.zero_grad(set_to_none=True)
-            loss = criterion(model(images), targets)
+            with compute_context():
+                loss = criterion(model(images), targets)
             if not torch.isfinite(loss):
                 raise FloatingPointError("non-finite training loss")
-            loss.backward()
+            scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
             total_loss += loss.item() * targets.size(0)
             count += targets.size(0)
         validation, val_loss = evaluate(loaders["validation"])
@@ -253,6 +283,13 @@ def run_experiment(
         "hardware": {
             "device": str(device),
             "cuda": torch.version.cuda if device.type == "cuda" else None,
+        },
+        "performance": {
+            "device_preference": config.device_preference,
+            "num_workers": config.num_workers,
+            "pin_memory": device.type == "cuda",
+            "mixed_precision_requested": config.mixed_precision,
+            "mixed_precision_enabled": mixed_precision_enabled,
         },
         "git_revision": _git_revision(),
         "history": history,

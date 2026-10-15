@@ -226,9 +226,17 @@ def test_background_job_can_be_cancelled_between_epochs(tmp_path, monkeypatch):
 
 
 def test_config_validates_mode_and_ranges():
-    assert ExperimentConfig("data").to_dict()["primary_metric"] == "macro_f1"
+    defaults = ExperimentConfig("data").to_dict()
+    assert defaults["primary_metric"] == "macro_f1"
+    assert defaults["device_preference"] == "auto"
+    assert defaults["num_workers"] == 0
+    assert defaults["mixed_precision"] is False
     with pytest.raises(ValueError):
         ExperimentConfig("data", epochs=0)
+    with pytest.raises(ValueError):
+        ExperimentConfig("data", num_workers=-1)
+    with pytest.raises(ValueError):
+        ExperimentConfig("data", device_preference="tpu")
 
 
 def test_dashboard_home_and_live_training_view():

@@ -66,6 +66,7 @@ elif page == "Experiment Configuration":
     test_fold = st.selectbox("Official test fold", [1, 2, 3, 4, 5], index=4)
     experiment_kind = st.selectbox("Run type", ["research", "smoke"])
     family = st.selectbox("Model family", ["Classical", "Hybrid quantum-classical"])
+    device_preference = st.selectbox("Compute device", ["auto", "cpu", "cuda"])
     architecture = st.selectbox(
         "Architecture",
         ["resnet18", "efficientnet_b0"] if family == "Classical" else ["Variational classifier"],
@@ -73,6 +74,10 @@ elif page == "Experiment Configuration":
     mode = st.selectbox("Training mode", ["scratch", "transfer"])
     epochs = st.number_input("Epochs", 1, 500, 10)
     batch_size = st.number_input("Batch size", 1, 512, 16)
+    num_workers = st.number_input("Data loader workers", 0, 16, 0)
+    mixed_precision = st.checkbox(
+        "Use CUDA mixed precision", value=False, disabled=family != "Classical"
+    )
     learning_rate = st.number_input(
         "Learning rate", min_value=0.000001, max_value=1.0, value=0.001, format="%.6f"
     )
@@ -88,6 +93,7 @@ elif page == "Experiment Configuration":
                 dataset_version=version,
                 dataset_kind=kind,
                 model_family="hybrid" if family.startswith("Hybrid") else "classical",
+                device_preference=device_preference,
                 split_strategy=split_strategy,
                 test_fold=int(test_fold),
                 experiment_kind=experiment_kind,
@@ -95,6 +101,8 @@ elif page == "Experiment Configuration":
                 training_mode=mode,
                 epochs=int(epochs),
                 batch_size=int(batch_size),
+                num_workers=int(num_workers),
+                mixed_precision=mixed_precision,
                 learning_rate=float(learning_rate),
                 seed=int(seed),
                 qubits=int(qubits),

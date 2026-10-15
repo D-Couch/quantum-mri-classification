@@ -23,14 +23,25 @@ class ExperimentConfig:
     quantum_backend: str = "default.qubit"
     qubits: int = 4
     circuit_depth: int = 2
+    device_preference: str = "auto"
+    num_workers: int = 0
+    mixed_precision: bool = False
 
     def __post_init__(self):
         if self.epochs < 1 or self.batch_size < 1 or self.learning_rate <= 0:
             raise ValueError("epochs and batch size must be positive and learning rate > 0")
+        if isinstance(self.num_workers, bool) or not isinstance(self.num_workers, int):
+            raise TypeError("num_workers must be an integer")
+        if self.num_workers < 0:
+            raise ValueError("num_workers cannot be negative")
+        if not isinstance(self.mixed_precision, bool):
+            raise TypeError("mixed_precision must be a boolean")
         if self.training_mode not in {"scratch", "transfer"}:
             raise ValueError("training_mode must be scratch or transfer")
         if self.model_family not in {"classical", "hybrid"}:
             raise ValueError("model_family must be classical or hybrid")
+        if self.device_preference not in {"auto", "cpu", "cuda"}:
+            raise ValueError("device_preference must be auto, cpu, or cuda")
         if self.dataset_kind not in {"real", "synthetic", "unverified"}:
             raise ValueError("dataset_kind must be real, synthetic, or unverified")
         if self.split_strategy not in {"group_holdout", "official_five_fold"}:
