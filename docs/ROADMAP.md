@@ -31,27 +31,27 @@
 - The trainer refuses small or empty splits and any split missing a declared class. Real-world feasibility and stratification still need evaluation.
 - Dataset kind defaults to `unverified`; tests explicitly mark generated fixtures `synthetic`.
 
-### Milestone 3 — Classical Training: runner implemented; research baselines outstanding
+### Milestone 3 — Classical Training: matched five-fold pilot complete; broader baselines outstanding
 
 - [x] Implement scratch and transfer-capable classical constructors, checkpoint selection by validation macro-F1, metric/report persistence, and inference.
 - [x] Run a full-dataset one-epoch ResNet18 smoke execution on official folds (CPU, 3,064 images, 233 patients); artifact remains labeled smoke.
 - [x] Run one multi-epoch scratch baseline on real data using official folds (single seed/fold; preliminary).
 - [x] Run one transfer baseline on a separate official fold assignment (single seed/fold; preliminary).
-- [x] Repeat scratch and transfer on two matched official folds with seeds 42–44; record per-fold test macro-F1 mean and sample SD.
-- [ ] Cover the remaining three official folds to estimate fold-level variation.
+- [x] Repeat scratch and transfer on all five matched official folds with seeds 42–44; record per-fold test macro-F1 mean and sample SD.
 
-### Milestone 4 — Quantum Integration: hybrid implementation verified; wider profiling in progress
+### Milestone 4 — Quantum Integration: matched five-fold pilot complete; wider profiling in progress
 
 - [x] Implement trainable hybrid model and gradient/update tests.
 - [x] Run one matched-fold hybrid pilot against a scratch ResNet18 control; this single seed/fold result is preliminary.
-- [x] Repeat matched scratch/hybrid comparison across seeds 42–44 on official folds 2 and 3.
-- [ ] Cover remaining folds and profile simulator alternatives.
+- [x] Repeat matched scratch/hybrid comparison across seeds 42–44 on all five official folds.
+- [ ] Profile simulator alternatives.
 - [ ] Profile CPU and compatible accelerated simulators.
 
-### Milestone 5 — Model Selection and Research: two-fold repeated comparison underway
+### Milestone 5 — Model Selection and Research: fixed-protocol five-fold pilot summarized
 
-- [x] Compare three-seed matched-fold results and report per-fold mean/sample SD for two official folds.
-- [ ] Aggregate uncertainty across all official folds and select best overall/classical/hybrid.
+- [x] Compare three-seed matched-fold results and report per-fold mean/sample SD for all five official folds.
+- [x] Aggregate validation macro-F1 across folds and seeds for validation-based family selection; report test results descriptively without using them for selection.
+- [ ] Quantify uncertainty across patients/folds and select final dashboard best overall/classical/hybrid cohort models.
 - [ ] Add benchmark references with dataset and protocol qualifiers, exports, and model comparison.
 
 ### Milestone 6 — Performance Optimization: RTX 4090 verified; optimization profiling outstanding
@@ -66,7 +66,7 @@
 - This runtime exposes an NVIDIA GeForce RTX 4090 with driver 615.78.08, CUDA 13.0, and 24,564 MiB total memory. A full 3,064-image one-epoch ResNet18 smoke run on official folds completed on CUDA in 10.16 seconds; it is labeled `experiment_kind=smoke` and is not a research result. Matched CPU/GPU performance profiling remains outstanding.
 - Dependencies installed in `.venv` on Python 3.14: Streamlit, Pillow, NumPy, h5py, PyTorch, torchvision, scikit-learn, PennyLane, PennyLane-Lightning, pytest, and Ruff. Current local suite has 16 passing tests covering metrics, splits, persistence/migration, model forward, hybrid gradients, importer, training/inference, background job progress/cancellation/recovery, and dashboard views.
 - ML frameworks are declared in the `ml` extra; GitHub Actions installs CPU-only PyTorch wheels to avoid pulling CUDA runtime packages onto CI runners.
-- Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, final test evaluation, and guarded checkpoint warm-start recovery. Synthetic training tests are explicitly labeled. A full-dataset one-epoch run is marked `experiment_kind=smoke` and excluded from best-model selection. Seeds 42–44 were evaluated on official test folds 2 and 3 with matched scratch, ImageNet transfer, and hybrid settings. The per-fold macro-F1 means ± sample SD are recorded in `docs/DATASETS.md`; the other three official folds still need evaluation.
+- Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, final test evaluation, and guarded checkpoint warm-start recovery. Synthetic training tests are explicitly labeled. A full-dataset one-epoch run is marked `experiment_kind=smoke` and excluded from best-model selection. Seeds 42–44 were evaluated on all five official test folds with matched scratch, ImageNet transfer, and hybrid settings. Per-fold test summaries and validation-only family selection scores are recorded in `docs/DATASETS.md`; these remain a fixed-protocol pilot, not a clinical or directly comparable published benchmark.
 - The evaluation engine reports macro/weighted F1, accuracy, balanced accuracy, per-class precision/recall/sensitivity/specificity, multiclass ROC-AUC and average precision, MCC, kappa, and confusion matrix. Training runs off the Streamlit request path and persists epoch progress. The current one-epoch CUDA smoke report and recovery lineage are stored in SQLite. Classical training uses CUDA when available; current PennyLane CPU simulators remain on CPU to avoid device mismatch.
 - Figshare v5 archives are in ignored `data/raw/`; imported images/manifests are in ignored `data/figshare-v5/`. Source details, checksum findings, and class limitations are documented in `docs/DATASETS.md`.
 
