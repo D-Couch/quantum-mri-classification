@@ -239,6 +239,34 @@ def test_config_validates_mode_and_ranges():
         ExperimentConfig("data", device_preference="tpu")
 
 
+def test_patient_cluster_bootstrap_resamples_whole_groups_deterministically():
+    import numpy as np
+
+    from mri_classifier.patient_bootstrap import patient_cluster_bootstrap
+
+    labels = {"a": 0, "b": 0, "c": 1, "d": 1}
+    perfect = {
+        patient: np.array([[1, 0], [0, 0]]) if label == 0 else np.array([[0, 0], [0, 1]])
+        for patient, label in labels.items()
+    }
+    imperfect = {patient: matrix.copy() for patient, matrix in perfect.items()}
+    imperfect["b"] = np.array([[0, 1], [0, 0]])
+    confusions = {
+        "transfer": {seed: perfect for seed in (42, 43, 44)},
+        "scratch": {seed: imperfect for seed in (42, 43, 44)},
+    }
+
+    result = patient_cluster_bootstrap(confusions, labels, ["class_a", "class_b"], 100, 7)
+
+    assert result["transfer"]["pooled_oof_macro_f1_mean_across_seeds"] == 1.0
+    assert result["transfer"]["patient_cluster_bootstrap_95_percentile_interval"] == [1.0, 1.0]
+    interval = result["paired_differences_vs_transfer"]["scratch"][
+        "patient_cluster_bootstrap_95_percentile_interval"
+    ]
+    assert interval[0] < 0
+    assert interval[1] == 0
+
+
 def test_dashboard_home_and_live_training_view():
     from streamlit.testing.v1 import AppTest
 

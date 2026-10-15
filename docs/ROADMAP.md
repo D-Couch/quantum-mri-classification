@@ -47,12 +47,14 @@
 - [ ] Profile simulator alternatives.
 - [ ] Profile CPU and compatible accelerated simulators.
 
-### Milestone 5 — Model Selection and Research: fixed-protocol five-fold pilot summarized
+### Milestone 5 — Model Selection and Research: fixed-protocol five-fold pilot and patient bootstrap complete
 
 - [x] Compare three-seed matched-fold results and report per-fold mean/sample SD for all five official folds.
 - [x] Aggregate validation macro-F1 across folds and seeds for validation-based family selection; report test results descriptively without using them for selection.
-- [ ] Quantify uncertainty across patients/folds and select final dashboard best overall/classical/hybrid cohort models.
-- [ ] Add benchmark references with dataset and protocol qualifiers, exports, and model comparison.
+- [x] Select ImageNet transfer as the leading family in this fixed pilot: it has the highest mean validation macro-F1 on each fold.
+- [x] Add patient-cluster bootstrap intervals for pooled out-of-fold predictions, conditional on the checkpoints and three seeds.
+- [x] Provide dashboard best overall/classical/hybrid selection from completed real-data research runs using validation macro-F1.
+- [ ] Add protocol-qualified benchmark references and result exports; model comparison view is implemented.
 
 ### Milestone 6 — Performance Optimization: RTX 4090 verified; optimization profiling outstanding
 
@@ -67,7 +69,7 @@
 
 - Current runtime: Python 3.14.8, Linux x86_64. Installed Git 2.56 and GitHub CLI 2.102.0. Outside-sandbox `gh auth status` confirmed D-Couch keyring authentication; GitHub API is reachable; the private repository and remote are verified.
 - This runtime exposes an NVIDIA GeForce RTX 4090 with driver 615.78.08, CUDA 13.0, and 24,564 MiB total memory. A full 3,064-image one-epoch ResNet18 smoke run on official folds completed on CUDA in 10.16 seconds; it is labeled `experiment_kind=smoke` and is not a research result. An initial matched one-epoch CPU/GPU/input-pipeline profile is recorded in `docs/DATASETS.md`; repeated timing and validation-stability checks remain outstanding.
-- Dependencies installed in `.venv` on Python 3.14: Streamlit, Pillow, NumPy, h5py, PyTorch, torchvision, scikit-learn, PennyLane, PennyLane-Lightning, pytest, and Ruff. Current local suite has 16 passing tests covering metrics, splits, persistence/migration, model forward, hybrid gradients, importer, training/inference, background job progress/cancellation/recovery, and dashboard views.
+- Dependencies installed in `.venv` on Python 3.14: Streamlit, Pillow, NumPy, h5py, PyTorch, torchvision, scikit-learn, PennyLane, PennyLane-Lightning, pytest, and Ruff. Current local suite has 17 passing tests covering metrics, splits, persistence/migration, model forward, hybrid gradients, importer, training/inference, background job progress/cancellation/recovery, patient-cluster bootstrap, and dashboard views.
 - ML frameworks are declared in the `ml` extra; GitHub Actions installs CPU-only PyTorch wheels to avoid pulling CUDA runtime packages onto CI runners.
 - Latest implementation has manifest-driven dashboard training, metrics, checkpoint selection, report JSON, final test evaluation, and guarded checkpoint warm-start recovery. Synthetic training tests are explicitly labeled. A full-dataset one-epoch run is marked `experiment_kind=smoke` and excluded from best-model selection. Seeds 42–44 were evaluated on all five official test folds with matched scratch, ImageNet transfer, and hybrid settings. Per-fold test summaries and validation-only family selection scores are recorded in `docs/DATASETS.md`; these remain a fixed-protocol pilot, not a clinical or directly comparable published benchmark.
 - The evaluation engine reports macro/weighted F1, accuracy, balanced accuracy, per-class precision/recall/sensitivity/specificity, multiclass ROC-AUC and average precision, MCC, kappa, and confusion matrix. Training runs off the Streamlit request path and persists epoch progress. The current one-epoch CUDA smoke report and recovery lineage are stored in SQLite. Classical training uses CUDA when available; current PennyLane CPU simulators remain on CPU to avoid device mismatch.
