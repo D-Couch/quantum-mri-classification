@@ -58,10 +58,118 @@ def test_store_persists_and_updates(tmp_path):
     assert row["metrics"]["macro_f1"] == 0.75
 
 
+def test_store_migrates_existing_schema_with_progress(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "old.sqlite3"
+    with sqlite3.connect(path) as db:
+        db.execute("""CREATE TABLE experiments (
+            id TEXT PRIMARY KEY, created_at TEXT NOT NULL, status TEXT NOT NULL,
+            config TEXT NOT NULL, metrics TEXT NOT NULL, error TEXT
+        )""")
+    store = ExperimentStore(path)
+    experiment_id = store.create({"dataset": "x"})
+    store.update_progress(experiment_id, {"epoch": 2})
+    assert store.list()[0]["progress"] == {"epoch": 2}
+
+
+def test_background_job_persists_progress_and_result(tmp_path, monkeypatch):
+    from threading import Event
+
+    from PIL import Image
+
+    from mri_classifier import jobs
+    from mri_classifier.jobs import TrainingManager
+
+    image = tmp_path / "sample.png"
+    Image.new("RGB", (8, 8), "white").save(image)
+    manifest = tmp_path / "manifest.csv"
+    manifest.write_text("relative_path,label,patient_id\nsample.png,a,p1\n", encoding="utf-8")
+
+    started, release = Event(), Event()
+
+    def fake_run(config, rows, output_dir, progress, cancel):
+        started.set()
+        progress(1, 1, {"train_loss": 0.2, "validation_loss": 0.3, "validation": {"macro_f1": 0.8}})
+        release.wait(timeout=5)
+        return object(), {"validation_macro_f1": 0.8, "test_metrics": {"accuracy": 0.75}}
+
+    monkeypatch.setattr(jobs, "run_experiment", fake_run)
+    monkeypatch.setattr(jobs, "load_manifest", lambda *_: [])
+    store = ExperimentStore(tmp_path / "runs.sqlite3")
+    manager = TrainingManager(store)
+    config = ExperimentConfig(
+        dataset_path=str(tmp_path),
+        manifest_path=str(manifest),
+        dataset_kind="synthetic",
+        experiment_kind="smoke",
+    )
+    try:
+        experiment_id = manager.submit(config)
+        assert started.wait(timeout=5)
+        with pytest.raises(RuntimeError, match="already active"):
+            manager.submit(config)
+        release.set()
+        manager.wait(timeout=5)
+        assert manager.active_experiment_id() is None
+        result = store.list()[0]
+        assert result["id"] == experiment_id
+        assert result["status"] == "completed"
+        assert result["progress"]["epoch"] == 1
+        assert result["metrics"]["macro_f1"] == 0.8
+    finally:
+        release.set()
+        manager.shutdown()
+
+
+def test_background_job_can_be_cancelled_between_epochs(tmp_path, monkeypatch):
+    from threading import Event
+    from time import sleep
+
+    from mri_classifier import jobs
+    from mri_classifier.jobs import TrainingManager
+
+    started = Event()
+
+    def fake_run(config, rows, output_dir, progress, cancel):
+        started.set()
+        while not cancel():
+            sleep(0.01)
+        raise InterruptedError("experiment cancelled")
+
+    monkeypatch.setattr(jobs, "run_experiment", fake_run)
+    monkeypatch.setattr(jobs, "load_manifest", lambda *_: [])
+    store = ExperimentStore(tmp_path / "runs.sqlite3")
+    manager = TrainingManager(store)
+    config = ExperimentConfig(
+        dataset_path=str(tmp_path), manifest_path=str(tmp_path / "missing.csv")
+    )
+    try:
+        experiment_id = manager.submit(config)
+        assert started.wait(timeout=5)
+        assert manager.cancel()
+        manager.wait(timeout=5)
+        row = store.list()[0]
+        assert row["id"] == experiment_id
+        assert row["status"] == "cancelled"
+        assert row["error"] == "experiment cancelled"
+    finally:
+        manager.shutdown()
+
+
 def test_config_validates_mode_and_ranges():
     assert ExperimentConfig("data").to_dict()["primary_metric"] == "macro_f1"
     with pytest.raises(ValueError):
         ExperimentConfig("data", epochs=0)
+
+
+def test_dashboard_home_and_live_training_view():
+    from streamlit.testing.v1 import AppTest
+
+    app = AppTest.from_file(str(Path(__file__).parents[1] / "app.py")).run()
+    assert not app.exception
+    app.sidebar.radio[0].set_value("Live Training").run()
+    assert not app.exception
 
 
 def test_manifest_requires_patient_ids_and_rejects_duplicate_content(tmp_path):

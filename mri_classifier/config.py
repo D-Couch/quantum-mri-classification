@@ -6,6 +6,7 @@ from dataclasses import asdict, dataclass
 @dataclass(frozen=True)
 class ExperimentConfig:
     dataset_path: str
+    manifest_path: str = "data/manifest.csv"
     dataset_version: str = "unspecified"
     dataset_kind: str = "unverified"
     model_family: str = "classical"

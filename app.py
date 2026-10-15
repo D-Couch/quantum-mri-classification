@@ -3,19 +3,34 @@
 import streamlit as st
 
 from mri_classifier.config import ExperimentConfig
-from mri_classifier.datasets import inspect_image_folder, load_manifest
+from mri_classifier.datasets import inspect_image_folder
+from mri_classifier.jobs import TrainingManager
 from mri_classifier.store import ExperimentStore
-from mri_classifier.training import run_experiment
 
 st.set_page_config(page_title="Quantum MRI Research", page_icon="🧠", layout="wide")
 st.title("Brain MRI Classification Research")
 st.caption("Local research platform · not for clinical diagnosis")
 page = st.sidebar.radio(
     "View",
-    ["Home", "Datasets", "Experiment Configuration", "History", "Model Comparison", "Best Model"],
+    [
+        "Home",
+        "Datasets",
+        "Experiment Configuration",
+        "Live Training",
+        "History",
+        "Model Comparison",
+        "Best Model",
+    ],
 )
 store = ExperimentStore()
 records = store.list()
+
+
+@st.cache_resource
+def training_manager():
+    return TrainingManager(store)
+
+
 if page == "Home":
     a, b, c = st.columns(3)
     a.metric("Saved experiments", len(records))
@@ -64,9 +79,9 @@ elif page == "Experiment Configuration":
     backend = st.text_input("PennyLane simulator (hybrid)", "default.qubit")
     if st.button("Train and evaluate", type="primary"):
         try:
-            rows = load_manifest(manifest, dataset)
             config = ExperimentConfig(
                 dataset_path=dataset,
+                manifest_path=manifest,
                 dataset_version=version,
                 dataset_kind=kind,
                 model_family="hybrid" if family.startswith("Hybrid") else "classical",
@@ -83,37 +98,32 @@ elif page == "Experiment Configuration":
                 circuit_depth=int(depth),
                 quantum_backend=backend,
             )
-            experiment_id = store.create(config.to_dict())
-            store.set_status(experiment_id, "running")
-            bar = st.progress(0.0, text="Preparing experiment")
-            status = st.empty()
-
-            def update_progress(epoch, total, record):
-                bar.progress(epoch / total, text=f"Epoch {epoch}/{total}")
-                status.write(
-                    f"Train loss {record['train_loss']:.4f} · validation macro-F1 {record['validation']['macro_f1']:.4f}"
-                )
-
-            with st.spinner("Training locally; do not close this page until the run finishes."):
-                _, report = run_experiment(
-                    config, rows, f"artifacts/{experiment_id}", progress=update_progress
-                )
-            store.finish(
-                experiment_id,
-                {
-                    "macro_f1": report["validation_macro_f1"],
-                    "test_metrics": report["test_metrics"],
-                    "report": report,
-                },
-            )
-            st.success(
-                f"Completed experiment {experiment_id}; validation macro-F1 {report['validation_macro_f1']:.3f}"
-            )
-            st.json(report["test_metrics"])
+            experiment_id = training_manager().submit(config)
+            st.success(f"Training job {experiment_id} started. Follow progress in Live Training.")
         except Exception as exc:  # noqa: BLE001 - persist any user-visible training failure
-            if "experiment_id" in locals():
-                store.finish(experiment_id, {}, error=str(exc))
             st.error(f"Experiment failed: {exc}")
+elif page == "Live Training":
+
+    @st.fragment(run_every="1s")
+    def live_training_view():
+        latest = store.list()
+        active = next((r for r in latest if r["status"] in {"queued", "running"}), None)
+        if active is None:
+            st.info("No active training job.")
+            return
+        progress = active.get("progress", {})
+        current = progress.get("epoch", 0)
+        total = progress.get("epochs", 1)
+        st.write(f"Experiment {active['id']} · {active['status']}")
+        st.progress(min(current / total, 1.0), text=f"Epoch {current}/{total}")
+        if progress:
+            st.write(
+                f"Train loss {progress['train_loss']:.4f} · validation macro-F1 {progress['validation']['macro_f1']:.4f}"
+            )
+        if st.button("Cancel training", type="secondary") and training_manager().cancel():
+            st.warning("Cancellation requested; it will stop after the current epoch.")
+
+    live_training_view()
 elif page in {"History", "Model Comparison", "Best Model"}:
     if page == "Model Comparison":
         st.caption("Compare scores only when dataset, class definitions, and split protocol match.")
