@@ -48,8 +48,6 @@ class ExperimentConfig:
             or self.training_mode != "transfer"
         ):
             raise ValueError("tumor-mask supervision requires transfer ResNet18")
-        if self.mask_auxiliary and self.augment_training:
-            raise ValueError("tumor-mask supervision currently requires augmentation disabled")
         if self.training_mode not in {"scratch", "transfer"}:
             raise ValueError("training_mode must be scratch or transfer")
         if self.model_family not in {"classical", "hybrid"}:

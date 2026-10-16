@@ -439,6 +439,40 @@ def test_mask_aux_model_outputs_class_and_mask_logits():
     assert model.mask_head[-1].weight.grad is not None
 
 
+def test_mask_supervision_augmentation_keeps_image_and_mask_aligned(tmp_path, monkeypatch):
+    import random
+
+    from PIL import Image, ImageDraw
+
+    from mri_classifier.training import ManifestImageDataset
+
+    image_path, mask_path = tmp_path / "image.png", tmp_path / "mask.png"
+    image = Image.new("L", (64, 64))
+    mask = Image.new("L", (64, 64))
+    ImageDraw.Draw(image).rectangle((18, 20, 39, 44), fill=255)
+    ImageDraw.Draw(mask).rectangle((18, 20, 39, 44), fill=255)
+    image.save(image_path)
+    mask.save(mask_path)
+    monkeypatch.setattr(random, "random", lambda: 0.1)
+    monkeypatch.setattr(random, "uniform", lambda *_: 7.0)
+
+    dataset = ManifestImageDataset(
+        [{"path": image_path, "mask_path": mask_path, "label": "tumor"}],
+        [0],
+        ["tumor"],
+        image_size=64,
+        augment=True,
+        include_mask=True,
+    )
+    image_tensor, _, mask_tensor = dataset[0]
+    image_support = image_tensor.mean(dim=0) > 0.5
+    mask_support = mask_tensor[0] > 0.5
+    intersection = (image_support & mask_support).sum().item()
+    union = (image_support | mask_support).sum().item()
+    assert union > 0
+    assert intersection / union > 0.9
+
+
 def test_hybrid_circuit_has_finite_gradients_and_updates():
     torch = pytest.importorskip("torch")
     pytest.importorskip("pennylane")
@@ -486,7 +520,6 @@ def test_lightning_gpu_hybrid_forward_backward_when_available():
 def test_augmentation_transforms_are_optional_and_training_scoped(tmp_path):
     pytest.importorskip("torchvision")
     from PIL import Image
-    from torchvision import transforms
 
     from mri_classifier.training import ManifestImageDataset
 
@@ -495,12 +528,8 @@ def test_augmentation_transforms_are_optional_and_training_scoped(tmp_path):
     rows = [{"path": path, "label": "glioma", "patient_id": "p1"}]
     augmented = ManifestImageDataset(rows, [0], ["glioma"], augment=True)
     unaugmented = ManifestImageDataset(rows, [0], ["glioma"], augment=False)
-    assert any(isinstance(item, transforms.RandomHorizontalFlip) for item in augmented.transform.transforms)
-    assert any(isinstance(item, transforms.RandomRotation) for item in augmented.transform.transforms)
-    assert not any(
-        isinstance(item, (transforms.RandomHorizontalFlip, transforms.RandomRotation))
-        for item in unaugmented.transform.transforms
-    )
+    assert augmented.augment is True
+    assert unaugmented.augment is False
 
 
 def test_classical_model_forward_shape():

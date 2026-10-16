@@ -37,15 +37,14 @@ class ManifestImageDataset(Dataset):
         self.include_mask = include_mask
         if include_mask and any("mask_path" not in row for row in self.rows):
             raise ValueError("tumor-mask supervision requires masks for every training image")
-        steps = [transforms.Resize((image_size, image_size))]
-        if augment:
-            steps.extend(
-                [transforms.RandomHorizontalFlip(p=0.5), transforms.RandomRotation(degrees=10)]
-            )
-        steps.append(transforms.ToTensor())
+        self.augment = augment
+        self.resize = transforms.Resize((image_size, image_size))
+        self.to_tensor = transforms.ToTensor()
+        self.normalize = None
         if pretrained:
-            steps.append(transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]))
-        self.transform = transforms.Compose(steps)
+            self.normalize = transforms.Normalize(
+                [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+            )
         self.mask_transform = transforms.Compose(
             [
                 transforms.Resize(
@@ -61,10 +60,32 @@ class ManifestImageDataset(Dataset):
     def __getitem__(self, index):
         row = self.rows[index]
         with Image.open(row["path"]) as image:
-            tensor = self.transform(image.convert(self.mode))
+            image = self.resize(image.convert(self.mode))
+        mask_image = None
         if self.include_mask:
             with Image.open(row["mask_path"]) as mask:
-                mask_tensor = self.mask_transform(mask.convert("L"))
+                mask_image = self.mask_transform.transforms[0](mask.convert("L"))
+        if self.augment:
+            from torchvision.transforms import InterpolationMode, functional
+
+            flip = random.random() < 0.5
+            angle = random.uniform(-10.0, 10.0)
+            if flip:
+                image = functional.hflip(image)
+                if mask_image is not None:
+                    mask_image = functional.hflip(mask_image)
+            image = functional.rotate(
+                image, angle, interpolation=InterpolationMode.BILINEAR, fill=0
+            )
+            if mask_image is not None:
+                mask_image = functional.rotate(
+                    mask_image, angle, interpolation=InterpolationMode.NEAREST, fill=0
+                )
+        tensor = self.to_tensor(image)
+        if self.normalize is not None:
+            tensor = self.normalize(tensor)
+        if self.include_mask:
+            mask_tensor = self.mask_transform.transforms[1](mask_image)
             return tensor, self.to_label[row["label"]], mask_tensor
         return tensor, self.to_label[row["label"]]
 
