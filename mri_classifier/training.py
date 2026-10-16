@@ -160,6 +160,8 @@ def run_experiment(
                 "resnet18": torchvision.models.ResNet18_Weights,
                 "efficientnet_b0": torchvision.models.EfficientNet_B0_Weights,
                 "vit_b_16": torchvision.models.ViT_B_16_Weights,
+                "swin_t": torchvision.models.Swin_T_Weights,
+                "convnext_tiny": torchvision.models.ConvNeXt_Tiny_Weights,
             }
             weight_type = weight_types.get(config.architecture)
             if weight_type is not None:

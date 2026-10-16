@@ -525,6 +525,18 @@ def test_vit_b16_model_forward_shape():
     assert output.shape == (1, 3)
 
 
+@pytest.mark.parametrize("architecture", ["swin_t", "convnext_tiny"])
+def test_modern_classical_model_forward_shape(architecture):
+    torch = pytest.importorskip("torch")
+    pytest.importorskip("torchvision")
+    from mri_classifier.models import build_classical_model
+
+    model = build_classical_model(architecture, num_classes=3, pretrained=False).eval()
+    with torch.inference_mode():
+        output = model(torch.rand(1, 3, 224, 224))
+    assert output.shape == (1, 3)
+
+
 def test_grouped_hybrid_training_vertical_slice_is_labeled_synthetic(tmp_path):
     pytest.importorskip("torch")
     pytest.importorskip("pennylane")

@@ -69,10 +69,12 @@
 - [x] Confirm EfficientNet-B0 ImageNet weight source and terms caveat; run a three-seed, one-fold transfer pilot and do not extend it because its validation mean did not improve.
 - [ ] Evaluate additional pretrained architectures and transfer strategies with confirmed provenance, selecting by validation macro-F1 across patient folds.
 - [x] Add torchvision ImageNet-pretrained ViT-B/16 as an optional architecture and screen it on one official validation fold with seeds 42–44; its validation mean was below mask-supervised ResNet18, so it remains exploratory and was not extended. See `docs/DATASETS.md`.
+- [x] Screen ImageNet-pretrained Swin-T and ConvNeXt-Tiny, plus a fixed validation-only ResNet18/ConvNeXt probability blend, on the same one-fold seed set; none approached the 0.99 target or justified five-fold extension. See `docs/DATASETS.md`.
 - [x] Pilot training-only horizontal flips and small rotations on one matched patient fold; results were mixed and inconclusive.
 - [ ] Evaluate additional training strategies and augmentation candidates on matched patient folds, using validation macro-F1; consider ensembles only when validation errors are complementary.
 - [ ] Audit recurrent validation errors by patient and class, verify labels/masks/provenance for those cases, then prioritize data expansion and architecture changes that address the error pattern. Never alter or remove valid difficult cases solely to raise the score.
 - [x] Screen discriminative encoder learning rate, auxiliary mask-loss weight, and 320-pixel input resolution on one official patient fold with seeds 42–44; none improved the established mask-supervised ResNet18 enough to justify a five-fold extension. Results and limitations are in `docs/DATASETS.md`.
+- [x] Audit 35 recurrently misclassified validation images against the official Figshare source records; labels, patient IDs, imported pixels, and masks all matched exactly. This verifies the import path for this sample, not the clinical correctness of source annotations.
 - [ ] Assess validation stability across longer runs and seeds; retain checkpoint selection by validation macro-F1.
 - [ ] Profile and optimize the GPU input pipeline after classification-quality studies, if throughput limits those experiments.
 - [x] Verify the exposed RTX 4090 and measure a full-dataset one-epoch CUDA smoke run (10.16 seconds; smoke only).
