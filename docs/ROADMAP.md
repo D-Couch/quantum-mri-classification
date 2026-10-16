@@ -70,6 +70,7 @@
 - [ ] Evaluate additional pretrained architectures and transfer strategies with confirmed provenance, selecting by validation macro-F1 across patient folds.
 - [x] Pilot training-only horizontal flips and small rotations on one matched patient fold; results were mixed and inconclusive.
 - [ ] Evaluate additional training strategies and augmentation candidates on matched patient folds, using validation macro-F1; consider ensembles only when validation errors are complementary.
+- [x] Screen discriminative encoder learning rate, auxiliary mask-loss weight, and 320-pixel input resolution on one official patient fold with seeds 42–44; none improved the established mask-supervised ResNet18 enough to justify a five-fold extension. Results and limitations are in `docs/DATASETS.md`.
 - [ ] Assess validation stability across longer runs and seeds; retain checkpoint selection by validation macro-F1.
 - [ ] Profile and optimize the GPU input pipeline after classification-quality studies, if throughput limits those experiments.
 - [x] Verify the exposed RTX 4090 and measure a full-dataset one-epoch CUDA smoke run (10.16 seconds; smoke only).
