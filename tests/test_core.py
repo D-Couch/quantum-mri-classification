@@ -623,3 +623,47 @@ def test_grouped_hybrid_training_vertical_slice_is_labeled_synthetic(tmp_path):
     assert prediction["prediction"] in {"class_a", "class_b"}
     assert sum(prediction["probabilities"].values()) == pytest.approx(1.0)
     assert prediction["research_notice"].startswith("Research output only")
+
+
+def test_predict_patient_pools_slices_and_checkpoint_probabilities(monkeypatch):
+    from io import BytesIO
+    from types import SimpleNamespace
+
+    import torch
+    from PIL import Image
+
+    from mri_classifier import inference
+
+    class ConstantModel:
+        def __init__(self, logits):
+            self.logits = torch.tensor(logits)
+
+        def __call__(self, images):
+            return self.logits.to(images.device).expand(images.shape[0], -1)
+
+    config = SimpleNamespace(
+        model_family="classical",
+        training_mode="transfer",
+        experiment_kind="research",
+        dataset_kind="real",
+    )
+    logits = {"model-a": [3.0, 0.0], "model-b": [0.0, 3.0]}
+
+    def fake_load_checkpoint(checkpoint, device):
+        return ConstantModel(logits[checkpoint]), ["a", "b"], config, torch.device("cpu")
+
+    monkeypatch.setattr(inference, "load_checkpoint", fake_load_checkpoint)
+    images = []
+    for color in ((20, 30, 40), (200, 210, 220)):
+        image = BytesIO()
+        Image.new("RGB", (12, 12), color).save(image, format="PNG")
+        image.seek(0)
+        images.append(image)
+
+    prediction = inference.predict_patient(["model-a", "model-b"], images)
+    assert prediction["prediction"] == "a"
+    assert prediction["probabilities"]["a"] == pytest.approx(0.5)
+    assert prediction["probabilities"]["b"] == pytest.approx(0.5)
+    assert prediction["slice_count"] == 2
+    assert prediction["model_count"] == 2
+    assert prediction["research_notice"].startswith("Research output only")

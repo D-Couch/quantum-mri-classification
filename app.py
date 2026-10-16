@@ -257,11 +257,65 @@ elif page in {"History", "Model Comparison", "Best Model"}:
             else:
                 column.metric(title, "Unavailable")
         if completed:
-            st.subheader("Inference with best validated overall model")
+            patient_ensemble = sorted(
+                [
+                    record
+                    for record in records
+                    if record["status"] == "completed"
+                    and record["config"].get("dataset_kind") == "real"
+                    and record["config"].get("model_family") == "classical"
+                    and record["config"].get("architecture") == "swin_t"
+                    and record["config"].get("training_mode") == "transfer"
+                    and record["config"].get("split_strategy") == "official_five_fold"
+                    and record["config"].get("test_fold") == 5
+                    and "BRISC official training tumor images" in record["config"].get(
+                        "dataset_version", ""
+                    )
+                    and record["metrics"].get("report", {}).get("checkpoint")
+                ],
+                key=lambda record: record["config"].get("seed", 0),
+            )
+            if len(patient_ensemble) == 3 and {
+                record["config"].get("seed") for record in patient_ensemble
+            } == {42, 43, 44}:
+                st.subheader("Patient-level inference with Swin-T seed ensemble")
+                st.caption(
+                    "Upload slices from one patient together. This experimental ensemble "
+                    "pools slice probabilities and averages three validation checkpoints."
+                )
+                patient_uploads = st.file_uploader(
+                    "Choose this patient's MRI slices",
+                    type=["png", "jpg", "jpeg", "bmp", "tif", "tiff"],
+                    accept_multiple_files=True,
+                    key="patient-mri-upload",
+                )
+                if patient_uploads:
+                    from io import BytesIO
+
+                    from mri_classifier.inference import predict_patient
+
+                    checkpoints = [
+                        record["metrics"]["report"]["checkpoint"]
+                        for record in patient_ensemble
+                    ]
+                    prediction = predict_patient(
+                        checkpoints,
+                        [BytesIO(upload.getvalue()) for upload in patient_uploads],
+                    )
+                    st.write(f"Predicted class: **{prediction['prediction']}**")
+                    st.bar_chart(prediction["probabilities"])
+                    st.caption(
+                        f"Pooled {prediction['slice_count']} slices with "
+                        f"{prediction['model_count']} Swin-T models. {prediction['research_notice']}"
+                    )
+
+            st.subheader("Single-image inference with best validated model")
             best = max(completed, key=lambda r: r["metrics"]["macro_f1"])
             report = best["metrics"].get("report", {})
             uploaded = st.file_uploader(
-                "Choose a compatible MRI image", type=["png", "jpg", "jpeg", "bmp", "tif", "tiff"]
+                "Choose one compatible MRI image",
+                type=["png", "jpg", "jpeg", "bmp", "tif", "tiff"],
+                key="single-mri-upload",
             )
             if uploaded and report.get("checkpoint"):
                 from io import BytesIO
