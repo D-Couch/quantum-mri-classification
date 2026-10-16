@@ -405,6 +405,9 @@ def test_figshare_import_preserves_labels_and_patient_ids(tmp_path):
         group.create_dataset("label", data=np.array([[2.0]]))
         group.create_dataset("PID", data=np.array([[49], [50], [51], [52]], dtype=np.uint16))
         group.create_dataset("image", data=np.arange(64).reshape(8, 8))
+        tumor_mask = np.zeros((8, 8), dtype=np.uint8)
+        tumor_mask[2:5, 3:6] = 1
+        group.create_dataset("tumorMask", data=tumor_mask)
     folds_path = tmp_path / "cvind.mat"
     with h5py.File(folds_path, "w") as handle:
         handle.create_dataset("cvind", data=np.ones((1, 3064)))
@@ -415,6 +418,25 @@ def test_figshare_import_preserves_labels_and_patient_ids(tmp_path):
     assert rows[0]["label"] == "glioma"
     assert rows[0]["patient_id"] == "1234"
     assert rows[0]["official_fold"] == 1
+    assert rows[0]["mask_path"].is_file()
+
+
+def test_mask_aux_model_outputs_class_and_mask_logits():
+    torch = pytest.importorskip("torch")
+    pytest.importorskip("torchvision")
+    from mri_classifier.models import build_classical_model
+
+    model = build_classical_model(
+        "resnet18", num_classes=3, pretrained=False, mask_auxiliary=True
+    ).eval()
+    logits, mask_logits = model.forward_with_mask(torch.rand(2, 3, 64, 64))
+    assert logits.shape == (2, 3)
+    assert mask_logits.shape == (2, 1, 64, 64)
+    loss = logits.sum() + torch.nn.functional.binary_cross_entropy_with_logits(
+        mask_logits, torch.rand_like(mask_logits)
+    )
+    loss.backward()
+    assert model.mask_head[-1].weight.grad is not None
 
 
 def test_hybrid_circuit_has_finite_gradients_and_updates():

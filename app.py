@@ -72,20 +72,42 @@ elif page == "Experiment Configuration":
         "Architecture",
         ["resnet18", "efficientnet_b0"] if family == "Classical" else ["Variational classifier"],
     )
-    mode = st.selectbox("Training mode", ["scratch", "transfer"])
+    mode = st.selectbox("Training mode", ["scratch", "transfer"], index=1)
     augment_training = st.checkbox(
         "Use training-only augmentation (horizontal flip, up to 10° rotation)",
         value=False,
         disabled=family != "Classical",
     )
+    mask_auxiliary = st.checkbox(
+        "Use tumor-mask supervision (ResNet18 transfer only)",
+        value=True,
+        disabled=(
+            family != "Classical"
+            or architecture != "resnet18"
+            or mode != "transfer"
+            or augment_training
+        ),
+        help="Requires mask_relative_path in every manifest row; masks are used only for training.",
+    )
+    if (
+        family != "Classical"
+        or architecture != "resnet18"
+        or mode != "transfer"
+        or augment_training
+    ):
+        mask_auxiliary = False
     epochs = st.number_input("Epochs", 1, 500, 10)
-    batch_size = st.number_input("Batch size", 1, 512, 16)
+    batch_size = st.number_input("Batch size", 1, 512, 32)
     num_workers = st.number_input("Data loader workers", 0, 16, 0)
     mixed_precision = st.checkbox(
         "Use CUDA mixed precision", value=False, disabled=family != "Classical"
     )
     learning_rate = st.number_input(
-        "Learning rate", min_value=0.000001, max_value=1.0, value=0.001, format="%.6f"
+        "Learning rate",
+        min_value=0.000001,
+        max_value=1.0,
+        value=0.0001 if mode == "transfer" else 0.001,
+        format="%.6f",
     )
     seed = st.number_input("Random seed", min_value=0, max_value=2**31 - 1, value=42)
     qubits = st.number_input("Qubits (hybrid)", 1, 12, 4)
@@ -110,6 +132,7 @@ elif page == "Experiment Configuration":
                 num_workers=int(num_workers),
                 mixed_precision=mixed_precision,
                 augment_training=augment_training,
+                mask_auxiliary=mask_auxiliary,
                 learning_rate=float(learning_rate),
                 seed=int(seed),
                 qubits=int(qubits),

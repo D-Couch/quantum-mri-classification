@@ -27,12 +27,16 @@ class ManifestImageDataset(Dataset):
         grayscale=False,
         pretrained=False,
         augment=False,
+        include_mask=False,
     ):
         from torchvision import transforms
 
         self.rows = [rows[i] for i in indices]
         self.to_label = {label: i for i, label in enumerate(labels)}
         self.mode = "L" if grayscale else "RGB"
+        self.include_mask = include_mask
+        if include_mask and any("mask_path" not in row for row in self.rows):
+            raise ValueError("tumor-mask supervision requires masks for every training image")
         steps = [transforms.Resize((image_size, image_size))]
         if augment:
             steps.extend(
@@ -42,6 +46,14 @@ class ManifestImageDataset(Dataset):
         if pretrained:
             steps.append(transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]))
         self.transform = transforms.Compose(steps)
+        self.mask_transform = transforms.Compose(
+            [
+                transforms.Resize(
+                    (image_size, image_size), interpolation=transforms.InterpolationMode.NEAREST
+                ),
+                transforms.ToTensor(),
+            ]
+        )
 
     def __len__(self):
         return len(self.rows)
@@ -50,6 +62,10 @@ class ManifestImageDataset(Dataset):
         row = self.rows[index]
         with Image.open(row["path"]) as image:
             tensor = self.transform(image.convert(self.mode))
+        if self.include_mask:
+            with Image.open(row["mask_path"]) as mask:
+                mask_tensor = self.mask_transform(mask.convert("L"))
+            return tensor, self.to_label[row["label"]], mask_tensor
         return tensor, self.to_label[row["label"]]
 
 
@@ -128,6 +144,9 @@ def run_experiment(
     family = getattr(config, "model_family", "classical")
     is_hybrid = family == "hybrid"
     pretrained = config.training_mode == "transfer"
+    mask_auxiliary = getattr(config, "mask_auxiliary", False)
+    if mask_auxiliary and not all("mask_path" in row for row in rows):
+        raise ValueError("tumor-mask supervision requires tumor masks in the dataset manifest")
     if is_hybrid and pretrained:
         raise ValueError("transfer mode is currently available for classical models only")
     torchvision_version = None
@@ -158,6 +177,7 @@ def run_experiment(
             is_hybrid,
             pretrained,
             augment=config.augment_training and name == "train",
+            include_mask=mask_auxiliary and name == "train",
         )
         for name, indices in splits.items()
     }
@@ -184,7 +204,9 @@ def run_experiment(
             len(label_names), config.qubits, config.circuit_depth, config.quantum_backend
         )
         if is_hybrid
-        else build_classical_model(config.architecture, len(label_names), pretrained)
+        else build_classical_model(
+            config.architecture, len(label_names), pretrained, mask_auxiliary=mask_auxiliary
+        )
     )
     use_cuda = torch.cuda.is_available() and (
         config.device_preference == "cuda"
@@ -229,6 +251,7 @@ def run_experiment(
         saved_config = state.get("config", {}).copy()
         current_config = config.to_dict()
         saved_config.setdefault("augment_training", False)
+        saved_config.setdefault("mask_auxiliary", False)
         saved_config.pop("epochs", None)
         current_config.pop("epochs", None)
         if saved_config != current_config:
@@ -272,12 +295,31 @@ def run_experiment(
         epoch_started = time.perf_counter()
         model.train()
         total_loss, count = 0.0, 0
-        for images, targets in loaders["train"]:
+        for batch in loaders["train"]:
+            if mask_auxiliary:
+                images, targets, tumor_masks = batch
+                tumor_masks = tumor_masks.to(device, non_blocking=device.type == "cuda")
+            else:
+                images, targets = batch
             images = images.to(device, non_blocking=device.type == "cuda")
             targets = targets.to(device, non_blocking=device.type == "cuda")
             optimizer.zero_grad(set_to_none=True)
             with compute_context():
-                loss = criterion(model(images), targets)
+                if mask_auxiliary:
+                    logits, mask_logits = model.forward_with_mask(images)
+                    classification_loss = criterion(logits, targets)
+                    pixel_loss = torch.nn.functional.binary_cross_entropy_with_logits(
+                        mask_logits.float(), tumor_masks.float()
+                    )
+                    probabilities = mask_logits.float().sigmoid()
+                    intersection = (probabilities * tumor_masks).sum(dim=(1, 2, 3))
+                    denominator = probabilities.sum(dim=(1, 2, 3)) + tumor_masks.sum(
+                        dim=(1, 2, 3)
+                    )
+                    dice_loss = 1.0 - ((2.0 * intersection + 1.0) / (denominator + 1.0)).mean()
+                    loss = classification_loss + 0.2 * (pixel_loss + dice_loss)
+                else:
+                    loss = criterion(model(images), targets)
             if not torch.isfinite(loss):
                 raise FloatingPointError("non-finite training loss")
             scaler.scale(loss).backward()

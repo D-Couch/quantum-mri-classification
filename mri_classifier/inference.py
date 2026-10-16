@@ -30,7 +30,12 @@ def load_checkpoint(path: str | Path, device: str | None = None):
     model = (
         build_hybrid_model(len(labels), config.qubits, config.circuit_depth, config.quantum_backend)
         if config.model_family == "hybrid"
-        else build_classical_model(config.architecture, len(labels), pretrained=False)
+        else build_classical_model(
+            config.architecture,
+            len(labels),
+            pretrained=False,
+            mask_auxiliary=getattr(config, "mask_auxiliary", False),
+        )
     )
     model.load_state_dict(state["model"])
     model.to(device).eval()

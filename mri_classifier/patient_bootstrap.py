@@ -218,7 +218,10 @@ def main():
             )
         else:
             model = build_classical_model(
-                config["architecture"], len(labels), config["training_mode"] == "transfer"
+                config["architecture"],
+                len(labels),
+                config["training_mode"] == "transfer",
+                mask_auxiliary=config.get("mask_auxiliary", False),
             )
             model_device = device
         model.load_state_dict(state["model"])

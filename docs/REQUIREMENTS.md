@@ -19,6 +19,7 @@ Build working research software for 2D multiclass brain tumor MRI classification
 
 - Modular interfaces for classical, trainable hybrid quantum-classical, and ensemble models; select the best validated model irrespective of family.
 - Classical training from scratch and transfer learning; document pretrained checkpoint provenance and configuration. Consider ResNet, EfficientNet, ViT, and medically relevant models based on evidence.
+- For datasets with source tumor masks, support optional auxiliary segmentation supervision and predicted-ROI classification; ground-truth masks must remain training-only.
 - At least one differentiable hybrid classifier; verify circuit influence, gradient flow, and parameter updates. Configure qubits, encoding, depth, ansatz, entanglement, measurements, and simulator.
 - Reproducible configuration, seeds, train/validation loops, early stopping, scheduling, checkpoints, repeated runs, and appropriate cross-validation. Recover interrupted runs from a compatible best-validation checkpoint as a recorded warm start, clearly marking that optimizer and scheduler state reset.
 - Optimize on validation macro-F1 by default. Report accuracy, balanced accuracy, precision/recall/sensitivity/specificity, macro/weighted/per-class F1, ROC-AUC, PR-AUC, confusion matrix, MCC, kappa, latency, throughput, parameters, memory, and quantum costs when defined.

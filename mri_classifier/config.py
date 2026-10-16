@@ -27,6 +27,7 @@ class ExperimentConfig:
     num_workers: int = 0
     mixed_precision: bool = False
     augment_training: bool = False
+    mask_auxiliary: bool = False
 
     def __post_init__(self):
         if self.epochs < 1 or self.batch_size < 1 or self.learning_rate <= 0:
@@ -39,6 +40,16 @@ class ExperimentConfig:
             raise TypeError("mixed_precision must be a boolean")
         if not isinstance(self.augment_training, bool):
             raise TypeError("augment_training must be a boolean")
+        if not isinstance(self.mask_auxiliary, bool):
+            raise TypeError("mask_auxiliary must be a boolean")
+        if self.mask_auxiliary and (
+            self.model_family != "classical"
+            or self.architecture != "resnet18"
+            or self.training_mode != "transfer"
+        ):
+            raise ValueError("tumor-mask supervision requires transfer ResNet18")
+        if self.mask_auxiliary and self.augment_training:
+            raise ValueError("tumor-mask supervision currently requires augmentation disabled")
         if self.training_mode not in {"scratch", "transfer"}:
             raise ValueError("training_mode must be scratch or transfer")
         if self.model_family not in {"classical", "hybrid"}:

@@ -57,6 +57,11 @@ def load_manifest(path: str | Path, image_root: str | Path) -> list[dict]:
                 )
             if not row["label"].strip() or not row["patient_id"].strip():
                 raise ValueError(f"line {line}: label and patient_id are required")
+            mask_path = None
+            if row.get("mask_relative_path", "").strip():
+                mask_path = (root / row["mask_relative_path"]).resolve()
+                if not mask_path.is_relative_to(root) or not mask_path.is_file():
+                    raise ValueError(f"line {line}: missing or unsafe tumor mask")
             digest = sha256_file(image)
             if digest in seen_hashes:
                 previous = seen_hashes[digest]
@@ -67,6 +72,7 @@ def load_manifest(path: str | Path, image_root: str | Path) -> list[dict]:
                     "path": image,
                     "label": row["label"].strip(),
                     "patient_id": row["patient_id"].strip(),
+                    **({"mask_path": mask_path} if mask_path is not None else {}),
                     **(
                         {"official_fold": int(row["official_fold"])}
                         if row.get("official_fold")
