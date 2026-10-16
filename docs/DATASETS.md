@@ -67,14 +67,15 @@
 
   **Multi-epoch GPU timing check (smoke only):** ResNet18 scratch, batch size 32, four epochs, official test fold 1 / validation fold 2, seeds 42–44 (three runs per setting). Treating epoch 1 as warm-up, the nine remaining epoch times per setting had medians (ranges) of 9.12 s (8.64–9.78) with zero workers / FP32, 3.77 s (3.70–4.10) with two workers / FP32, and 8.81 s (8.05–9.58) with zero workers / FP16 autocast. The two-worker improvement repeated across all three seeds; keep it configurable because performance may vary by machine and dataset. AMP timing overlaps FP32 and shows no clear speed benefit. Validation curves varied across seeds and settings, so the short runs do not establish model-quality or precision stability. Test metrics were not inspected for this profile. All nine run records are in SQLite and labeled `experiment_kind=smoke`.
 
-- **Quantum simulator profile (smoke only):** Hybrid classifier with four qubits, depth two, seed 42, batch size 32, one epoch, official test fold 1 and validation fold 2. All runs used the CPU; three runs per backend:
+- **Quantum simulator profile (smoke only):** Hybrid classifier with four qubits, depth two, seed 42, batch size 32, one epoch, official test fold 1 and validation fold 2. Python 3.14.8, PennyLane 0.45.1, PyTorch 2.14.1+cu130, RTX 4090/SM 8.9 with driver 615.78.08. One warm-up and three measured runs per backend; all settings use zero workers and FP32. The reported epoch duration includes training and validation, but excludes final test evaluation:
 
   | PennyLane backend | Median duration (range) |
   | --- | ---: |
-  | `default.qubit` | 7.3 s (6.9–7.5) |
-  | `lightning.qubit` | 12.4 s (11.9–12.7) |
+  | `default.qubit` (CPU) | 5.77 s (5.66–5.98) |
+  | `lightning.qubit` (CPU) | 10.12 s (10.12–10.38) |
+  | `lightning.gpu` (CUDA) | 34.66 s (34.52–34.83) |
 
-  This small-circuit CPU profile did not show a `lightning.qubit` speed advantage. The separate `pennylane-lightning-gpu==0.45.0` plugin is now installed in `.venv` and detects the RTX 4090 (SM 8.9). A four-qubit forward/backward/update passed on CUDA, and a synthetic one-epoch training run plus checkpoint inference reported `device=cuda`, using PennyLane 0.45.1, PyTorch 2.14.1+cu130, driver 615.78.08, and the plugin's cuQuantum CUDA 12 libraries. This verifies compatibility, not a speedup: no matched timing comparison is recorded yet, and the circuit is too small to assume GPU execution will be faster. The optional installation extra is `.[quantum-gpu]`.
+  `lightning.gpu` was about 6.0× slower than `default.qubit` and 3.4× slower than `lightning.qubit` in this profile, despite reporting CUDA execution. The four-qubit state is extremely small (16 amplitudes), so device and execution overhead dominate the circuit work; this result is specific to the current model, batch handling, and hardware/software stack. It does not establish that GPU simulation is generally slower. No test metrics were inspected or used for model selection. The run records are in `artifacts/experiments.sqlite3`, with a timing-only summary at `artifacts/quantum-simulator-profile-summary.json`. The optional installation extra is `.[quantum-gpu]`.
 
 ## Pretrained model-weight provenance
 

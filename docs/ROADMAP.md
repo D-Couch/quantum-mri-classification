@@ -47,7 +47,7 @@
 - [x] Repeat matched scratch/hybrid comparison across seeds 42–44 on all five official folds.
 - [x] Profile `default.qubit` and `lightning.qubit` on a matched one-epoch CPU smoke run; results are in `docs/DATASETS.md`.
 - [x] Install and validate PennyLane `lightning.gpu` on the RTX 4090; hybrid training and checkpoint inference can run on CUDA.
-- [ ] Profile matched CPU/GPU quantum simulator throughput; tiny circuits may be slower on GPU.
+- [x] Profile matched CPU/GPU quantum simulator throughput. In the current four-qubit smoke profile, `lightning.gpu` used CUDA but was slower than both CPU backends; see `docs/DATASETS.md`.
 
 ### Milestone 5 — Model Selection and Research: fixed-protocol five-fold pilot and patient bootstrap complete
 
