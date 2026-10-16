@@ -1,8 +1,8 @@
 # Roadmap
 
-## Status (2026-10-15)
+## Status (2026-10-16)
 
-**Priority:** reach the user's target of at least **0.99 validation macro-F1** for the supported image-level, three-class task, while preserving patient-disjoint evaluation. Current best fixed-pilot result is 0.943 ± 0.021 across the five official folds and three seeds; the target is not achieved. Throughput and latency profiles are secondary engineering checks and are not evidence of better classification.
+**Priority:** reach the user's target of at least **0.99 validation macro-F1** for the supported image-level, three-class task. The Figshare-only fixed-pilot mean was 0.943. With BRISC official training tumor images, mask-supervised ResNet18 reached 0.968 and ImageNet-pretrained ConvNeXt-Tiny reached **0.980** equal-fold validation macro-F1 across the five Figshare patient folds and three seeds. ConvNeXt's best single validation run was **0.998**, and its highest fold mean was **0.996**; the full-protocol 0.99 target remains unmet. BRISC lacks patient/source IDs, so source-level independence from Figshare validation patients is unverified. The earlier patient-level mean-pooling screen's highest fold mean was 0.978; that is a different metric. Throughput and latency profiles are secondary engineering checks.
 
 ### Milestone 1 — Foundation: initial slice verified; broader acceptance remains in progress
 
@@ -67,12 +67,15 @@
 
 - [x] Compare scratch EfficientNet-B0 against matched scratch ResNet18 on all five folds and seeds 42–44; use validation macro-F1 for selection and report the patient bootstrap descriptively.
 - [x] Confirm EfficientNet-B0 ImageNet weight source and terms caveat; run a three-seed, one-fold transfer pilot and do not extend it because its validation mean did not improve.
-- [ ] Evaluate additional pretrained architectures and transfer strategies with confirmed provenance, selecting by validation macro-F1 across patient folds. The one-fold RadImageNet ResNet50 screen was materially below its matched ImageNet control; see `docs/DATASETS.md`.
+- [x] Evaluate ImageNet-pretrained ConvNeXt-Tiny with BRISC training data across all five patient folds and seeds 42–44; it reached 0.980 mean validation macro-F1 and became the leading architecture. See `docs/DATASETS.md`.
+- [ ] Evaluate further pretrained architectures and transfer strategies on the expanded training data, selecting by validation macro-F1 across patient folds. The one-fold RadImageNet ResNet50 screen was materially below its matched ImageNet control; see `docs/DATASETS.md`.
 - [x] Add torchvision ImageNet-pretrained ViT-B/16 as an optional architecture and screen it on one official validation fold with seeds 42–44; its validation mean was below mask-supervised ResNet18, so it remains exploratory and was not extended. See `docs/DATASETS.md`.
-- [x] Screen ImageNet-pretrained Swin-T and ConvNeXt-Tiny, plus a fixed validation-only ResNet18/ConvNeXt probability blend, on the same one-fold seed set; none approached the 0.99 target or justified five-fold extension. See `docs/DATASETS.md`.
+- [x] Screen ImageNet-pretrained Swin-T and ConvNeXt-Tiny plus a ResNet18/ConvNeXt blend on the original Figshare-only data; results did not approach the target then. Re-screen ConvNeXt-Tiny on BRISC-expanded training data; it reached 0.980 five-fold mean and 0.998 best validation run. See `docs/DATASETS.md`.
 - [x] Pilot training-only horizontal flips and small rotations on one matched patient fold; results were mixed and inconclusive.
 - [x] Enable spatially synchronized image/mask augmentation and screen the leading mask-supervised model on one matched fold with seeds 42–44; mean validation macro-F1 was 0.937 versus 0.951 unaugmented, so it was not advanced. See `docs/DATASETS.md`.
-- [x] Assess BRISC as a potential external data source; its public release has no patient IDs and derives from collections including Figshare, so it cannot support verified patient-disjoint expansion. See `docs/DATASETS.md`.
+- [x] Add BRISC tumor images as supplemental training data, remove exact duplicates, and evaluate the official training split across all five Figshare patient folds and seeds 42–44. Validation macro-F1 increased from 0.943 to 0.968; source-level patient independence remains unverified. See `docs/DATASETS.md`.
+- [x] Screen additional BRISC official-test tumor images as training data across all five folds; mean gain over BRISC-training-only was only +0.001 and best single score was lower, so retain BRISC training split as the preferred supplemental data policy. No BRISC test score was used. See `docs/DATASETS.md`.
+- [x] Screen mean probability seed ensembling and horizontal-flip test-time augmentation on validation folds; neither outperformed the leading individual ConvNeXt model. See `docs/DATASETS.md`.
 - [ ] Evaluate additional training strategies on matched patient folds, using validation macro-F1; consider ensembles only when validation errors are complementary.
 - [ ] Audit recurrent validation errors by patient and class, verify labels/masks/provenance for those cases, then prioritize data expansion and architecture changes that address the error pattern. Never alter or remove valid difficult cases solely to raise the score.
 - [x] Screen discriminative encoder learning rate, auxiliary mask-loss weight, and 320-pixel input resolution on one official patient fold with seeds 42–44; none improved the established mask-supervised ResNet18 enough to justify a five-fold extension. Results and limitations are in `docs/DATASETS.md`.
