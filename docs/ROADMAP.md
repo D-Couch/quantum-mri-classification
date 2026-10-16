@@ -81,6 +81,14 @@
 - [x] Profile a validation-only training-augmentation pilot on three matched seeds within one patient fold; the result was inconclusive and was not advanced as a model-quality claim.
 - [ ] Evaluate host-specific worker defaults before changing pipeline/precision settings.
 
+### Architecture opportunities to evaluate (proposals; validation evidence required)
+
+- **Patient-level multi-instance classification:** The current 3,064 images belong to 233 patients (1–38 images per patient), and the current CNN predicts each slice independently. If the intended output is a patient diagnosis, compare patient-level pooling and attention-based MIL over each patient's slices; report patient-level macro-F1 with the official patient-disjoint folds. Attention-based MIL provides a permutation-invariant way to aggregate labeled bags of instances ([Ilse et al., ICML 2018](https://proceedings.mlr.press/v80/ilse18a.html)). Preserve image-level metrics as a secondary view.
+- **Mask-supervised classification:** The source records include a tumor mask for every image, but the importer currently discards it. Evaluate a shared encoder with an auxiliary segmentation decoder and a classification head. Apply masks as supervision only on training data; use predicted masks at validation, test, and inference, never ground-truth masks as a test-time input.
+- **Radiology-domain pretraining:** Compare an available RadImageNet-pretrained encoder with the ImageNet ResNet18 baseline using the same patient folds, seeds, and model-selection procedure. Verify the checkpoint source and terms before use; published gains on other medical tasks are not a result for this dataset ([RadImageNet study](https://pmc.ncbi.nlm.nih.gov/articles/PMC9530758/)).
+- **Ensembling:** Only add probability averaging or a learned ensemble if out-of-fold patient predictions show complementary errors and validation performance improves without test-set tuning.
+- **Volumetric models:** Defer 3D CNN/transformer architectures until an ordered 3D volume dataset is available. The current Figshare records are independent 2D images without a reliable slice-order/volume interface.
+
 ## Current blockers and verification
 
 - Current runtime: Python 3.14.8, Linux x86_64. Installed Git 2.56 and GitHub CLI 2.102.0. Outside-sandbox `gh auth status` confirmed D-Couch keyring authentication; GitHub API is reachable; the private repository and remote are verified.
