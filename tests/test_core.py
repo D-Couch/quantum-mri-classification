@@ -437,6 +437,30 @@ def test_hybrid_circuit_has_finite_gradients_and_updates():
     assert not torch.equal(initial_weights, model.quantum.weights.detach())
 
 
+def test_lightning_gpu_hybrid_forward_backward_when_available():
+    torch = pytest.importorskip("torch")
+    qml = pytest.importorskip("pennylane")
+    if not torch.cuda.is_available():
+        pytest.skip("CUDA is not available")
+    try:
+        qml.device("lightning.gpu", wires=2)
+    except (ImportError, RuntimeError, qml.exceptions.DeviceError) as exc:
+        pytest.skip(f"PennyLane lightning.gpu is unavailable: {exc}")
+
+    from mri_classifier.models import build_hybrid_model
+
+    model = build_hybrid_model(3, n_qubits=2, depth=1, backend="lightning.gpu").to("cuda")
+    inputs = torch.rand(2, 1, 16, 16, device="cuda")
+    targets = torch.tensor([0, 2], device="cuda")
+    before = model.quantum.weights.detach().clone()
+    loss = torch.nn.functional.cross_entropy(model(inputs), targets)
+    loss.backward()
+    assert model.quantum.weights.grad is not None
+    assert torch.isfinite(model.quantum.weights.grad).all()
+    torch.optim.SGD(model.parameters(), lr=0.01).step()
+    assert not torch.equal(before, model.quantum.weights.detach())
+
+
 def test_classical_model_forward_shape():
     torch = pytest.importorskip("torch")
     pytest.importorskip("torchvision")

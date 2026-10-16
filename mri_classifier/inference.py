@@ -11,10 +11,22 @@ from .models import build_classical_model, build_hybrid_model
 
 
 def load_checkpoint(path: str | Path, device: str | None = None):
-    device = torch.device(device or ("cuda" if torch.cuda.is_available() else "cpu"))
-    state = torch.load(path, map_location=device, weights_only=True)
+    state = torch.load(path, map_location="cpu", weights_only=True)
     config = ExperimentConfig(**state["config"])
     labels = state["labels"]
+    if device is None:
+        use_cuda = torch.cuda.is_available() and (
+            config.model_family != "hybrid" or config.quantum_backend == "lightning.gpu"
+        )
+        device = torch.device("cuda" if use_cuda else "cpu")
+    else:
+        device = torch.device(device)
+    if config.model_family == "hybrid":
+        gpu_quantum = config.quantum_backend == "lightning.gpu"
+        if gpu_quantum and device.type != "cuda":
+            raise ValueError("lightning.gpu checkpoints require CUDA for inference")
+        if not gpu_quantum and device.type != "cpu":
+            raise ValueError("CPU PennyLane backends require CPU inference")
     model = (
         build_hybrid_model(len(labels), config.qubits, config.circuit_depth, config.quantum_backend)
         if config.model_family == "hybrid"

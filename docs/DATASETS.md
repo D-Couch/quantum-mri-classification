@@ -74,7 +74,7 @@
   | `default.qubit` | 7.3 s (6.9–7.5) |
   | `lightning.qubit` | 12.4 s (11.9–12.7) |
 
-  This small-circuit CPU profile did not show a `lightning.qubit` speed advantage. `lightning.gpu` is unavailable in this environment, so no accelerated quantum simulator was measured. These one-epoch smoke timings do not establish general backend performance.
+  This small-circuit CPU profile did not show a `lightning.qubit` speed advantage. The separate `pennylane-lightning-gpu==0.45.0` plugin is now installed in `.venv` and detects the RTX 4090 (SM 8.9). A four-qubit forward/backward/update passed on CUDA, and a synthetic one-epoch training run plus checkpoint inference reported `device=cuda`, using PennyLane 0.45.1, PyTorch 2.14.1+cu130, driver 615.78.08, and the plugin's cuQuantum CUDA 12 libraries. This verifies compatibility, not a speedup: no matched timing comparison is recorded yet, and the circuit is too small to assume GPU execution will be faster. The optional installation extra is `.[quantum-gpu]`.
 
 ## Pretrained model-weight provenance
 

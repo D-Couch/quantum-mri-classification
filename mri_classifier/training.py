@@ -139,6 +139,24 @@ def run_experiment(
         name: ManifestImageDataset(rows, indices, label_names, size, is_hybrid, pretrained)
         for name, indices in splits.items()
     }
+    if config.device_preference == "cuda" and not torch.cuda.is_available():
+        raise RuntimeError("CUDA was requested but is unavailable")
+    gpu_quantum = is_hybrid and config.quantum_backend == "lightning.gpu"
+    if is_hybrid and config.device_preference == "cuda" and not gpu_quantum:
+        raise ValueError("hybrid CUDA execution requires the lightning.gpu PennyLane backend")
+    if is_hybrid and config.device_preference == "cpu" and gpu_quantum:
+        raise ValueError("lightning.gpu requires CUDA; select another backend for CPU execution")
+    if gpu_quantum and not torch.cuda.is_available():
+        raise RuntimeError("the lightning.gpu backend was selected but CUDA is unavailable")
+    if gpu_quantum:
+        try:
+            import pennylane as qml
+
+            qml.device("lightning.gpu", wires=config.qubits)
+        except Exception as exc:
+            raise RuntimeError(
+                "lightning.gpu is selected but its CUDA/cuQuantum runtime is unavailable"
+            ) from exc
     model = (
         build_hybrid_model(
             len(label_names), config.qubits, config.circuit_depth, config.quantum_backend
@@ -146,21 +164,15 @@ def run_experiment(
         if is_hybrid
         else build_classical_model(config.architecture, len(label_names), pretrained)
     )
-    # PennyLane's current default.qubit/lightning.qubit backends are CPU simulators.
-    if is_hybrid and config.device_preference == "cuda":
-        raise ValueError("the configured PennyLane hybrid simulators currently run on CPU")
-    if config.device_preference == "cuda" and not torch.cuda.is_available():
-        raise RuntimeError("CUDA was requested but is unavailable")
-    device = torch.device(
-        "cuda"
-        if not is_hybrid
-        and (
-            config.device_preference == "cuda"
-            or (config.device_preference == "auto" and torch.cuda.is_available())
-        )
-        else "cpu"
+    use_cuda = torch.cuda.is_available() and (
+        config.device_preference == "cuda"
+        or (config.device_preference == "auto" and (not is_hybrid or gpu_quantum))
     )
-    mixed_precision_enabled = bool(config.mixed_precision and device.type == "cuda")
+    device = torch.device("cuda" if use_cuda else "cpu")
+    # PennyLane GPU adjoint differentiation expects full-precision circuit inputs.
+    mixed_precision_enabled = bool(
+        config.mixed_precision and device.type == "cuda" and not is_hybrid
+    )
     loaders = {
         name: DataLoader(
             ds,

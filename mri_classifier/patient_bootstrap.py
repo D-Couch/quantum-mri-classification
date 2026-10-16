@@ -213,7 +213,9 @@ def main():
             model = build_hybrid_model(
                 len(labels), config["qubits"], config["circuit_depth"], config["quantum_backend"]
             )
-            model_device = torch.device("cpu")
+            model_device = (
+                device if config["quantum_backend"] == "lightning.gpu" else torch.device("cpu")
+            )
         else:
             model = build_classical_model(
                 config["architecture"], len(labels), config["training_mode"] == "transfer"
