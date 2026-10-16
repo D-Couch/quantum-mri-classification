@@ -514,6 +514,17 @@ def test_classical_model_forward_shape():
     assert output.shape == (2, 3)
 
 
+def test_vit_b16_model_forward_shape():
+    torch = pytest.importorskip("torch")
+    pytest.importorskip("torchvision")
+    from mri_classifier.models import build_classical_model
+
+    model = build_classical_model("vit_b_16", num_classes=3, pretrained=False).eval()
+    with torch.inference_mode():
+        output = model(torch.rand(1, 3, 224, 224))
+    assert output.shape == (1, 3)
+
+
 def test_grouped_hybrid_training_vertical_slice_is_labeled_synthetic(tmp_path):
     pytest.importorskip("torch")
     pytest.importorskip("pennylane")

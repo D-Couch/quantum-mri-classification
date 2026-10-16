@@ -17,6 +17,7 @@ def build_classical_model(
     constructors = {
         "resnet18": (models.resnet18, models.ResNet18_Weights.DEFAULT),
         "efficientnet_b0": (models.efficientnet_b0, models.EfficientNet_B0_Weights.DEFAULT),
+        "vit_b_16": (models.vit_b_16, models.ViT_B_16_Weights.DEFAULT),
     }
     if architecture not in constructors:
         raise ValueError(f"unsupported classical architecture: {architecture}")
@@ -28,8 +29,10 @@ def build_classical_model(
     model = constructor(weights=default_weights if pretrained else None)
     if architecture == "resnet18":
         model.fc = nn.Linear(model.fc.in_features, num_classes)
-    else:
+    elif architecture == "efficientnet_b0":
         model.classifier[-1] = nn.Linear(model.classifier[-1].in_features, num_classes)
+    else:
+        model.heads.head = nn.Linear(model.heads.head.in_features, num_classes)
     return model
 
 

@@ -68,6 +68,7 @@
 - [x] Compare scratch EfficientNet-B0 against matched scratch ResNet18 on all five folds and seeds 42–44; use validation macro-F1 for selection and report the patient bootstrap descriptively.
 - [x] Confirm EfficientNet-B0 ImageNet weight source and terms caveat; run a three-seed, one-fold transfer pilot and do not extend it because its validation mean did not improve.
 - [ ] Evaluate additional pretrained architectures and transfer strategies with confirmed provenance, selecting by validation macro-F1 across patient folds.
+- [x] Add torchvision ImageNet-pretrained ViT-B/16 as an optional architecture and screen it on one official validation fold with seeds 42–44; its validation mean was below mask-supervised ResNet18, so it remains exploratory and was not extended. See `docs/DATASETS.md`.
 - [x] Pilot training-only horizontal flips and small rotations on one matched patient fold; results were mixed and inconclusive.
 - [ ] Evaluate additional training strategies and augmentation candidates on matched patient folds, using validation macro-F1; consider ensembles only when validation errors are complementary.
 - [x] Screen discriminative encoder learning rate, auxiliary mask-loss weight, and 320-pixel input resolution on one official patient fold with seeds 42–44; none improved the established mask-supervised ResNet18 enough to justify a five-fold extension. Results and limitations are in `docs/DATASETS.md`.

@@ -70,7 +70,9 @@ elif page == "Experiment Configuration":
     device_preference = st.selectbox("Compute device", ["auto", "cpu", "cuda"])
     architecture = st.selectbox(
         "Architecture",
-        ["resnet18", "efficientnet_b0"] if family == "Classical" else ["Variational classifier"],
+        ["resnet18", "efficientnet_b0", "vit_b_16"]
+        if family == "Classical"
+        else ["Variational classifier"],
     )
     mode = st.selectbox("Training mode", ["scratch", "transfer"], index=1)
     augment_training = st.checkbox(
