@@ -73,6 +73,11 @@ elif page == "Experiment Configuration":
         ["resnet18", "efficientnet_b0"] if family == "Classical" else ["Variational classifier"],
     )
     mode = st.selectbox("Training mode", ["scratch", "transfer"])
+    augment_training = st.checkbox(
+        "Use training-only augmentation (horizontal flip, up to 10° rotation)",
+        value=False,
+        disabled=family != "Classical",
+    )
     epochs = st.number_input("Epochs", 1, 500, 10)
     batch_size = st.number_input("Batch size", 1, 512, 16)
     num_workers = st.number_input("Data loader workers", 0, 16, 0)
@@ -104,6 +109,7 @@ elif page == "Experiment Configuration":
                 batch_size=int(batch_size),
                 num_workers=int(num_workers),
                 mixed_precision=mixed_precision,
+                augment_training=augment_training,
                 learning_rate=float(learning_rate),
                 seed=int(seed),
                 qubits=int(qubits),

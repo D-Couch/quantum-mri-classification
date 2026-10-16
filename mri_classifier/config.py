@@ -26,6 +26,7 @@ class ExperimentConfig:
     device_preference: str = "auto"
     num_workers: int = 0
     mixed_precision: bool = False
+    augment_training: bool = False
 
     def __post_init__(self):
         if self.epochs < 1 or self.batch_size < 1 or self.learning_rate <= 0:
@@ -36,6 +37,8 @@ class ExperimentConfig:
             raise ValueError("num_workers cannot be negative")
         if not isinstance(self.mixed_precision, bool):
             raise TypeError("mixed_precision must be a boolean")
+        if not isinstance(self.augment_training, bool):
+            raise TypeError("augment_training must be a boolean")
         if self.training_mode not in {"scratch", "transfer"}:
             raise ValueError("training_mode must be scratch or transfer")
         if self.model_family not in {"classical", "hybrid"}:

@@ -461,6 +461,26 @@ def test_lightning_gpu_hybrid_forward_backward_when_available():
     assert not torch.equal(before, model.quantum.weights.detach())
 
 
+def test_augmentation_transforms_are_optional_and_training_scoped(tmp_path):
+    pytest.importorskip("torchvision")
+    from PIL import Image
+    from torchvision import transforms
+
+    from mri_classifier.training import ManifestImageDataset
+
+    path = tmp_path / "asymmetric.png"
+    Image.new("RGB", (16, 16), (50, 100, 150)).save(path)
+    rows = [{"path": path, "label": "glioma", "patient_id": "p1"}]
+    augmented = ManifestImageDataset(rows, [0], ["glioma"], augment=True)
+    unaugmented = ManifestImageDataset(rows, [0], ["glioma"], augment=False)
+    assert any(isinstance(item, transforms.RandomHorizontalFlip) for item in augmented.transform.transforms)
+    assert any(isinstance(item, transforms.RandomRotation) for item in augmented.transform.transforms)
+    assert not any(
+        isinstance(item, (transforms.RandomHorizontalFlip, transforms.RandomRotation))
+        for item in unaugmented.transform.transforms
+    )
+
+
 def test_classical_model_forward_shape():
     torch = pytest.importorskip("torch")
     pytest.importorskip("torchvision")

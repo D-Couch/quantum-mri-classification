@@ -18,13 +18,27 @@ from .metrics import classification_metrics
 
 
 class ManifestImageDataset(Dataset):
-    def __init__(self, rows, indices, labels, image_size=224, grayscale=False, pretrained=False):
+    def __init__(
+        self,
+        rows,
+        indices,
+        labels,
+        image_size=224,
+        grayscale=False,
+        pretrained=False,
+        augment=False,
+    ):
         from torchvision import transforms
 
         self.rows = [rows[i] for i in indices]
         self.to_label = {label: i for i, label in enumerate(labels)}
         self.mode = "L" if grayscale else "RGB"
-        steps = [transforms.Resize((image_size, image_size)), transforms.ToTensor()]
+        steps = [transforms.Resize((image_size, image_size))]
+        if augment:
+            steps.extend(
+                [transforms.RandomHorizontalFlip(p=0.5), transforms.RandomRotation(degrees=10)]
+            )
+        steps.append(transforms.ToTensor())
         if pretrained:
             steps.append(transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]))
         self.transform = transforms.Compose(steps)
@@ -136,7 +150,15 @@ def run_experiment(
                 }
     size = 64 if is_hybrid else 224
     datasets = {
-        name: ManifestImageDataset(rows, indices, label_names, size, is_hybrid, pretrained)
+        name: ManifestImageDataset(
+            rows,
+            indices,
+            label_names,
+            size,
+            is_hybrid,
+            pretrained,
+            augment=config.augment_training and name == "train",
+        )
         for name, indices in splits.items()
     }
     if config.device_preference == "cuda" and not torch.cuda.is_available():
@@ -206,6 +228,7 @@ def run_experiment(
         state = torch.load(resume_from, map_location=device, weights_only=True)
         saved_config = state.get("config", {}).copy()
         current_config = config.to_dict()
+        saved_config.setdefault("augment_training", False)
         saved_config.pop("epochs", None)
         current_config.pop("epochs", None)
         if saved_config != current_config:

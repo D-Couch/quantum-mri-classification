@@ -2,6 +2,8 @@
 
 ## Status (2026-10-15)
 
+**Priority:** improve classification generalization on held-out patients, selecting by validation macro-F1. Throughput and latency profiles are secondary engineering checks and are not evidence of better classification.
+
 ### Milestone 1 — Foundation: initial slice verified; broader acceptance remains in progress
 
 - [x] Establish package metadata, engineering instructions, authoritative requirements, and roadmap.
@@ -61,19 +63,23 @@
 - [x] Provide the model comparison view.
 - [x] Resolve dataset cohort identity from `dataset.json` source/version metadata so harmless version-label aliases do not split the same release into separate comparisons.
 
-### Milestone 6 — Performance Optimization: RTX 4090 verified; optimization profiling outstanding
+### Milestone 6 — Classification Quality and Generalization: leading pilot model identified; improvement studies outstanding
 
 - [x] Compare scratch EfficientNet-B0 against matched scratch ResNet18 on all five folds and seeds 42–44; use validation macro-F1 for selection and report the patient bootstrap descriptively.
 - [x] Confirm EfficientNet-B0 ImageNet weight source and terms caveat; run a three-seed, one-fold transfer pilot and do not extend it because its validation mean did not improve.
-- [ ] Evaluate additional architectures and transfer alternatives with confirmed provenance; then consider ensembles and augmentation.
-- [ ] Profile and optimize the GPU input pipeline after repeated warm-up measurements.
+- [ ] Evaluate additional pretrained architectures and transfer strategies with confirmed provenance, selecting by validation macro-F1 across patient folds.
+- [x] Pilot training-only horizontal flips and small rotations on one matched patient fold; results were mixed and inconclusive.
+- [ ] Evaluate additional training strategies and augmentation candidates on matched patient folds, using validation macro-F1; consider ensembles only when validation errors are complementary.
+- [ ] Assess validation stability across longer runs and seeds; retain checkpoint selection by validation macro-F1.
+- [ ] Profile and optimize the GPU input pipeline after classification-quality studies, if throughput limits those experiments.
 - [x] Verify the exposed RTX 4090 and measure a full-dataset one-epoch CUDA smoke run (10.16 seconds; smoke only).
 - [x] Add explicit device selection, configurable data-loader workers, opt-in CUDA mixed precision, and persist effective settings in reports.
 - [x] Record per-epoch durations in experiment history.
 - [x] Run a matched one-epoch CPU/GPU and CUDA input-pipeline/AMP smoke profile; results are in `docs/DATASETS.md` and SQLite.
 - [x] Repeat each profile setting to three runs and summarize medians/ranges; no warm-up was used.
 - [x] Repeat four-epoch profiles across seeds 42–44, treating epoch 1 as warm-up; the two-worker FP32 case was fastest across nine post-warm-up epochs per setting.
-- [ ] Assess validation stability in longer runs and evaluate host-specific worker defaults before changing pipeline/precision settings.
+- [x] Profile a validation-only training-augmentation pilot on three matched seeds within one patient fold; the result was inconclusive and was not advanced as a model-quality claim.
+- [ ] Evaluate host-specific worker defaults before changing pipeline/precision settings.
 
 ## Current blockers and verification
 
