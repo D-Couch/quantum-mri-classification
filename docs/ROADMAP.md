@@ -2,7 +2,7 @@
 
 ## Status (2026-10-15)
 
-**Priority:** improve classification generalization on held-out patients, selecting by validation macro-F1. Throughput and latency profiles are secondary engineering checks and are not evidence of better classification.
+**Priority:** reach the user's target of at least **0.99 validation macro-F1** for the supported image-level, three-class task, while preserving patient-disjoint evaluation. Current best fixed-pilot result is 0.943 ± 0.021 across the five official folds and three seeds; the target is not achieved. Throughput and latency profiles are secondary engineering checks and are not evidence of better classification.
 
 ### Milestone 1 — Foundation: initial slice verified; broader acceptance remains in progress
 
@@ -71,6 +71,7 @@
 - [x] Add torchvision ImageNet-pretrained ViT-B/16 as an optional architecture and screen it on one official validation fold with seeds 42–44; its validation mean was below mask-supervised ResNet18, so it remains exploratory and was not extended. See `docs/DATASETS.md`.
 - [x] Pilot training-only horizontal flips and small rotations on one matched patient fold; results were mixed and inconclusive.
 - [ ] Evaluate additional training strategies and augmentation candidates on matched patient folds, using validation macro-F1; consider ensembles only when validation errors are complementary.
+- [ ] Audit recurrent validation errors by patient and class, verify labels/masks/provenance for those cases, then prioritize data expansion and architecture changes that address the error pattern. Never alter or remove valid difficult cases solely to raise the score.
 - [x] Screen discriminative encoder learning rate, auxiliary mask-loss weight, and 320-pixel input resolution on one official patient fold with seeds 42–44; none improved the established mask-supervised ResNet18 enough to justify a five-fold extension. Results and limitations are in `docs/DATASETS.md`.
 - [ ] Assess validation stability across longer runs and seeds; retain checkpoint selection by validation macro-F1.
 - [ ] Profile and optimize the GPU input pipeline after classification-quality studies, if throughput limits those experiments.

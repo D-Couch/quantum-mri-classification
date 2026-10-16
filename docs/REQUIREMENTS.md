@@ -4,7 +4,7 @@ This document is the authoritative specification for the Quantum Brain MRI Class
 
 ## Mission and scientific principles
 
-Build working research software for 2D multiclass brain tumor MRI classification (glioma, meningioma, pituitary tumor, no tumor where supported). Pursue the highest validated generalizable performance regardless of classical, quantum, hybrid, or ensemble architecture. Quantum simulation is a research capability, not a preferred answer. This is not clinical diagnostic software.
+Build working research software for 2D multiclass brain tumor MRI classification (glioma, meningioma, pituitary tumor, no tumor where supported). The explicit performance target is at least **0.99 validation macro-F1** on the supported classification task. Pursue the highest validated generalizable performance regardless of classical, quantum, hybrid, or ensemble architecture. Evaluate against patient-disjoint partitions; never relax patient separation, deduplication, or test-set isolation to reach the target. Report 0.99 as achieved only after the fixed five-fold, three-seed validation protocol meets it, and report independent external performance separately. Quantum simulation is a research capability, not a preferred answer. This is not clinical diagnostic software.
 
 ## Dataset registry and integrity
 
