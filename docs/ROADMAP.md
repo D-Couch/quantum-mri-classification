@@ -63,14 +63,17 @@
 - [x] Provide the model comparison view.
 - [x] Resolve dataset cohort identity from `dataset.json` source/version metadata so harmless version-label aliases do not split the same release into separate comparisons.
 
-### Milestone 6 — Classification Quality and Generalization: leading pilot model identified; improvement studies outstanding
+### Milestone 6 — Classification Quality and Generalization: 0.99 patient-level internal validation reached; deployment and external generalization remain
 
 - [x] Compare scratch EfficientNet-B0 against matched scratch ResNet18 on all five folds and seeds 42–44; use validation macro-F1 for selection and report the patient bootstrap descriptively.
 - [x] Confirm EfficientNet-B0 ImageNet weight source and terms caveat; run a three-seed, one-fold transfer pilot and do not extend it because its validation mean did not improve.
-- [x] Evaluate ImageNet-pretrained ConvNeXt-Tiny with BRISC training data across all five patient folds and seeds 42–44; it reached 0.980 mean validation macro-F1 and became the leading architecture. See `docs/DATASETS.md`.
+- [x] Evaluate ImageNet-pretrained ConvNeXt-Tiny and Swin-T with BRISC training data across all five patient folds and seeds 42–44. Image-level means were 0.980 and 0.981, respectively; Swin-T leads by only 0.0007, while ConvNeXt retains the higher single-run image score (0.998 vs 0.993). Neither model meets 0.99 image-level mean performance. See `docs/DATASETS.md`.
+- [x] Evaluate patient probability pooling for the expanded-data ConvNeXt-Tiny and Swin-T runs. The three-seed Swin-T ensemble reached 1.000 patient-level validation macro-F1 on each of five folds (233 patients total); matched ConvNeXt-Tiny reached 0.996 mean. This meets 0.99 on internal patient-level validation, with the BRISC source-identity limitation documented in `docs/DATASETS.md`.
+- [ ] Add multi-slice patient inference to the dashboard and select/deploy a matching Swin-T seed ensemble so the validated patient-level pooling protocol is available to users.
+- [ ] Repeat patient-level evaluation on a source with verified patient identities and an untouched external cohort before claiming generalization beyond the current internal validation.
 - [ ] Evaluate further pretrained architectures and transfer strategies on the expanded training data, selecting by validation macro-F1 across patient folds. The one-fold RadImageNet ResNet50 screen was materially below its matched ImageNet control; see `docs/DATASETS.md`.
 - [x] Add torchvision ImageNet-pretrained ViT-B/16 as an optional architecture and screen it on one official validation fold with seeds 42–44; its validation mean was below mask-supervised ResNet18, so it remains exploratory and was not extended. See `docs/DATASETS.md`.
-- [x] Screen ImageNet-pretrained Swin-T and ConvNeXt-Tiny plus a ResNet18/ConvNeXt blend on the original Figshare-only data; results did not approach the target then. Re-screen ConvNeXt-Tiny on BRISC-expanded training data; it reached 0.980 five-fold mean and 0.998 best validation run. See `docs/DATASETS.md`.
+- [x] Screen ImageNet-pretrained Swin-T and ConvNeXt-Tiny plus a ResNet18/ConvNeXt blend on the original Figshare-only data. On BRISC-expanded training data, full five-fold means are 0.981 for Swin-T and 0.980 for ConvNeXt-Tiny; the best individual validation run is 0.998 for ConvNeXt-Tiny. The fixed five-fold mean target remains unmet. See `docs/DATASETS.md`.
 - [x] Pilot training-only horizontal flips and small rotations on one matched patient fold; results were mixed and inconclusive.
 - [x] Enable spatially synchronized image/mask augmentation and screen the leading mask-supervised model on one matched fold with seeds 42–44; mean validation macro-F1 was 0.937 versus 0.951 unaugmented, so it was not advanced. See `docs/DATASETS.md`.
 - [x] Add BRISC tumor images as supplemental training data, remove exact duplicates, and evaluate the official training split across all five Figshare patient folds and seeds 42–44. Validation macro-F1 increased from 0.943 to 0.968; source-level patient independence remains unverified. See `docs/DATASETS.md`.
